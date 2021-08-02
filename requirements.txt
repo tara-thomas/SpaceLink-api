@@ -1,0 +1,11 @@
+werkzeug
+flask
+py2neo
+passlib
+astropy
+astroplan
+flask-paginate
+ephem
+psycopg2
+pymongo
+astroquery
