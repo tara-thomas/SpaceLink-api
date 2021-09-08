@@ -290,7 +290,7 @@ def get_qualified_equipment(usr: str, PID: int):
         " return pht.JohnsonB as JohnsonB, pht.JohnsonV as JohnsonV, pht.JohnsonR as JohnsonR, pht.SDSSu as SDSSu, pht.SDSSg as SDSSg, pht.SDSSr as SDSSr , pht.SDSSi as SDSSi, pht.SDSSz as SDSSz"
     ", t.TID as TID, t.name as name, t.latitude as dec", PID=PID).data()
     
-    qualified_eid_list = dict()
+    qualified_eid_list = []
     for i in range(len(equipment)):
         for j in range(len(project_target)):
             if equipment[i]['jb'] == 'n':
@@ -346,13 +346,14 @@ def auto_join(usr: str, PID: int):
         
         #add the project to the last in the prioritty list
         old_priority = get_equipment_project_priority(usr,int(qualified_eid_list[i]['EID']))
+        print(old_priority)
         if(old_priority == None):
             list = []
             list.append(PID)
-            update_equipment_project_priority(usr,int(qualified_eid_list[i]['EID']))
+            update_equipment_project_priority(usr,int(qualified_eid_list[i]['EID']), list)
         else:
             old_priority.append(PID)
-            update_equipment_project_priority(usr,int(qualified_eid_list[i]['EID']))
+            update_equipment_project_priority(usr,int(qualified_eid_list[i]['EID']), old_priority)
 
 
 #this function is uesd to test, the user will auto leave the project

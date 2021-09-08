@@ -22,10 +22,7 @@ graph = db_auth() #connect to neo4j
 
 @app.route('/', methods=['GET'])
 def ind():
-    return "Ot's working man"
-
-
-
+    return "It's working man"
 
 @app.route('/accounts/register', methods=['GET'])
 def register_get():
@@ -131,85 +128,85 @@ def viewFriends():
 
 @app.route('/accounts/index', methods=['GET'])
 def dashboard_get():
-    if "usr" in session:
-        usr = session["usr"]
+    if request.headers['user']:
+        usr = request.headers['user']
         session["usr"] = usr
         user_profile = get_profile(usr)
         projects = get_project(usr)
         # get recommended users from postgresSQL
-        uid_list1 = recommend_user_by_equipment(str(get_uid(usr)))
-        random.shuffle(uid_list1)
-        new_uid_list1 = []
-        L1 = []
-        for uid in uid_list1:
-            if check_is_friend(usr, uid[0]) == 0:
-                new_uid_list1.append(uid)
-        L1 = get_user_info(new_uid_list1)
-        L1 = L1[:3]
+        # uid_list1 = recommend_user_by_equipment(str(get_uid(usr)))
+        # random.shuffle(uid_list1)
+        # new_uid_list1 = []
+        # L1 = []
+        # for uid in uid_list1:
+        #     if check_is_friend(usr, uid[0]) == 0:
+        #         new_uid_list1.append(uid)
+        # L1 = get_user_info(new_uid_list1)
+        # L1 = L1[:3]
 
         # get recommended users from the users share the same interest target
         # 1. get user interested targets
-        targets = get_user_interest(usr)
-        random.shuffle(targets)
+        # targets = get_user_interest(usr)
+        # random.shuffle(targets)
         # 2. get a non-friend user from each target with max 6 users
-        uid_list2 = []
-        L2 = []
-        for t in targets:
-            uid = get_a_new_user(usr, int(t['TID']))
-            if uid != -1:
+        # uid_list2 = []
+        # L2 = []
+        # for t in targets:
+        #     uid = get_a_new_user(usr, int(t['TID']))
+        #     if uid != -1:
                 
-                uid_list2.append([uid])
-            if len(uid_list2) > 3:
-                break
-        print(uid_list2)
-        if len(uid_list2) != 0:
-            L2 = get_user_info(uid_list2)
-        if len(L2) > 3:
-            L2 = L2[:3]
+        #         uid_list2.append([uid])
+        #     if len(uid_list2) > 3:
+        #         break
+        # print(uid_list2)
+        # if len(uid_list2) != 0:
+        #     L2 = get_user_info(uid_list2)
+        # if len(L2) > 3:
+        #     L2 = L2[:3]
         # get recommended users from the users in the same project
         # filter out the users that already is friend
-        recommended_user = L1+L2
-        uid_rest = []
-        if len(recommended_user) < 6:
-            need = 6-len(recommended_user)
-            for i in range(need):
-                while True:
-                    uid = random.randint(0, count_user())
-                    if uid != get_uid(usr):
-                        break
-                uid_rest.append([uid])
-        L3 = get_user_info(uid_rest)
+        # recommended_user = L1+L2
+        # uid_rest = []
+        # if len(recommended_user) < 6:
+        #     need = 6-len(recommended_user)
+        #     for i in range(need):
+        #         while True:
+        #             uid = random.randint(0, count_user())
+        #             if uid != get_uid(usr):
+        #                 break
+        #         uid_rest.append([uid])
+        # L3 = get_user_info(uid_rest)
         
-        recommended_user = L1+L2+L3
+        # recommended_user = L1+L2+L3
 
-        return {'user_profile': user_profile, 'projects': projects, 'recommended_user': recommended_user}
+        return {'user_profile': user_profile, 'projects': projects}
     else:
         return "login"
 
 #created for ajax to join project for project on dashboard
 @app.route('/joinProject', methods=['POST'])
 def joinProject():
-    if "usr" in session:
-        usr = session["usr"]
+    if request.headers['user']:
+        usr = request.headers['user']
         session["usr"] = usr
-        PID = request.json['PID'].strip()
+        PID = request.json['PID']
         auto_join(usr,int(PID))
-        return jsonify(success = "Successfully joined the project.")
+        return {"Success": "Successfully joined the project."}
     else:
         return "login"
         #return redirect(url_for("login_get"))
 
 @app.route('/accounts/joinedProjects', methods=['GET'])
 def getJoinedProjects():
-    if "usr" in session:
-        usr = session["usr"]
-        session["usr"] = usr
-        user_profile = get_profile(usr)
-        projects = get_project_join(usr)
-        return {'user_profile':user_profile,'projects':projects}
+    # if request.headers['user']:
+    #     usr = request.headers['user']
+    #     session["usr"] = usr
+    user_profile = get_profile("Ohputlm@Observatory229.com")
+    projects = get_project_join("Ohputlm@Observatory229.com")
+    return {'user_profile':user_profile,'projects':projects}
         #return render_template("accounts/joinedProjects.html", user_profile=user_profile, projects = projects)
-    else:
-        return "login"
+    # else:
+    #     return "login"
         #return redirect(url_for("login_get"))
 
 @app.route('/accounts/manageprojects', methods=['GET'])
@@ -270,10 +267,10 @@ def postRankedProjects():
 #created for ajax to get target for projects on dashboard
 @app.route('/getTargetInfo', methods=['POST'])
 def getTargetInfo():
-    if "usr" in session:
-        usr = session["usr"]
+    if request.headers['user']:
+        usr = request.headers['user']
         session["usr"] = usr
-        hid = request.json['PID'].strip()
+        hid = request.json['PID']
         project_target = fliter_project_target(usr, int(hid))
         return jsonify(project_targets = project_target)
     else:
@@ -299,12 +296,23 @@ def getJoinedEquipmentInfo():
     project_equipments = get_project_equipment(int(hid))
     return jsonify(project_equipments = project_equipments)
 
+@app.route('/equipment/schedule', methods=['POST'])
+def getSchedule():
+    if request.headers['user']:
+        usr = request.headers['user']
+        session["usr"] = usr
+        uhaveid =  request.json['id']
+        print("UHAVEID: ", uhaveid, "USER: ", usr)
+        return jsonify(generate_default_schedule(usr, uhaveid))
+    else:
+        return "login"
+
 @app.route('/addfriend', methods=['POST'])
 def addFriend():
     if "usr" in session:
         usr = session["usr"]
         session["usr"] = usr
-        uid = request..json['UID'].strip()
+        uid = request.json['UID'].strip()
         add_friend(usr, int(uid))
         return jsonify(success = "success")
     else:
@@ -313,7 +321,7 @@ def addFriend():
 
 @app.route('/getPMInfo', methods=['POST'])
 def getPMInfo():
-    hid = request.json['PID'].strip()
+    hid = request.json['PID']
     project_manager = get_project_manager_name(int(hid))
     return jsonify(project_manager = project_manager)
 
@@ -405,8 +413,8 @@ def createProj_get():
 
 @app.route('/accounts/equipments', methods=['GET'])
 def equipments_get():
-    if "usr" in session:
-        usr = session["usr"]
+    if request.headers['user']:
+        usr = request.headers['user']
         session["usr"] = usr
         user_profile = get_profile(usr)
         count = count_user_equipment(usr)
@@ -533,8 +541,8 @@ def target_getDetails():
 @app.route('/projects/project', methods=['GET'])
 def project_get():
 
-    if "usr" in session:
-        usr = session["usr"]
+    if request.headers['user']:
+        usr = request.headers['user']
         session["usr"] = usr
         projects = get_project(usr)
         return {'projects':projects}
@@ -552,7 +560,7 @@ def project_post():
         if request.form.get('button') == 'Detail':
             print(hid)
             project_target = get_project_target(int(hid))
-            return {'project_target': project_target)
+            return {'project_target': project_target}
         elif request.form.get('button') == 'Create':
             return "project create"
             # return redirect(url_for("project_create_get"))
@@ -684,5 +692,5 @@ def logout():
     # return redirect(url_for("login_get"))
 
 
-if _name_ == '_main_':
+if __name__ == '__main__':
     app.run(debug=True)

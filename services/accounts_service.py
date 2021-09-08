@@ -248,4 +248,8 @@ def update_equipment_project_priority(usr: str, eid : int, new_priority: list):
 def get_equipment_project_priority(usr:str,eid : int):
     query = "MATCH (x:user{usr:$usr})-[h:UhaveE]->(e:equipments{eid:$eid}) return e.equipment_priority as priority"
     result = graph.run(query,usr = usr,eid = eid).data()
-    return result[0]['priority']
+    print("Result: ", result)
+    if(len(result) == 0 ): 
+        return None
+    else :
+        return result[0]['priority']

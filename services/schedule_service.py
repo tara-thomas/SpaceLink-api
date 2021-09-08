@@ -3,7 +3,7 @@ from typing import Optional
 from passlib.handlers.sha2_crypt import sha512_crypt as crypto
 from services.classes import User, Target, Equipments, Project, Schedule
 from datetime import datetime, timedelta
-from services.project_service import get_project_equipment_TargetList
+from services.project_service import get_project_target
 
 import astro.declination_limit_of_location as declination
 import astro.astroplan_calculations as obtime
@@ -98,8 +98,11 @@ def save_schedule(SID: int, last_update: str, observe_section: list):
 
 # 0331 generate default schedule by sorting target
 def generate_default_schedule(usr: str, uhaveid: int):
-    query = "MATCH (x:user {email:$usr}) return x.project_priority"
-    pid_list = graph.run(query, usr=usr).data()
+    eid = get_eid(uhaveid)
+    query = "MATCH (e:equipments {EID:$eid}) return e.project_priority"
+    # pid_list = graph.run(query, eid=eid).data()
+    pid_list = [3,4,1]
+    print("PID LIST",pid_list)
 
     # 0526
     # arrange the schedule until it is full
@@ -108,15 +111,21 @@ def generate_default_schedule(usr: str, uhaveid: int):
     while True:
         pid = pid_list[cnt]
         project_target = get_project_target(pid)
+        print("PROJECT TARGET: ", project_target)
+        print("\n\n\n\n\n\n\n\n\n")
         sorted_target = sort_project_target(project_target)
+        print("SORTED TARGET: ", sorted_target)
+        print("\n\n\n\n\n\n\n\n\n")
         schedule_target += sorted_target
+        print("SCHEDULE TARGET: ", schedule_target)
+        print("\n\n\n\n\n\n\n\n\n")
         cnt += 1
-        if len(schedule_target > 100):
+        if (len(schedule_target) > 100):
             break
 
     default_schedule, default_schedule_chart, targets_observable_time = get_observable_time(uhaveid, pid, schedule_target)
 
-    return default_schedule, default_schedule_chart, targets_observable_time
+    return [default_schedule, default_schedule_chart, targets_observable_time]
 
 # 0331 sort targets' priority
 def sort_project_target(project_target):
@@ -124,7 +133,8 @@ def sort_project_target(project_target):
     '''TODO'''
 
     # shuffle for now
-    return random.shuffle(project_target)
+    random.shuffle(project_target)
+    return project_target
 
 # get the equipment id
 def get_eid(uhaveid):
@@ -141,7 +151,9 @@ def get_time2observe(pid, tid):
     result = graph.run(query, pid=pid, tid=tid).data()
 
     t2o = result[0]['T2O']
+    t2o = [1000, 1000, 1080, 0, 300, 0, 0, 1500]
     mode = result[0]['mode']
+    mode = 0
 
     return t2o, mode
 
@@ -167,10 +179,10 @@ def get_observable_time(uhaveid: int, pid: int, sorted_target: list):
     hint_msgs = {}
     # /0512
 
-    for tar in range(sorted_target):
-        tid = int(tar[0]['TID'])
-        ra = float(tar[0]['ra'])
-        dec = float(tar[0]['dec'])
+    for tar in sorted_target:
+        tid = int(tar['TID'])
+        ra = float(tar['lon'])
+        dec = float(tar['lat'])
 
         # get the time still need to observe of this target (an array of time by filters)
         t2o, mode = get_time2observe(pid, tid)
