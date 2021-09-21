@@ -101,7 +101,7 @@ def generate_default_schedule(usr: str, uhaveid: int):
     eid = get_eid(uhaveid)
     query = "MATCH (e:equipments {EID:$eid}) return e.project_priority"
     # pid_list = graph.run(query, eid=eid).data()
-    pid_list = [3,4,1]
+    pid_list = [13,4,1]
     print("PID LIST",pid_list)
 
     # 0526
@@ -111,19 +111,22 @@ def generate_default_schedule(usr: str, uhaveid: int):
     while True:
         pid = pid_list[cnt]
         project_target = get_project_target(pid)
-        print("PROJECT TARGET: ", project_target)
-        print("\n\n\n\n\n\n\n\n\n")
+        # print("PROJECT TARGET: ", project_target)
+        # print("\n\n\n\n\n\n\n\n\n")
         sorted_target = sort_project_target(project_target)
-        print("SORTED TARGET: ", sorted_target)
-        print("\n\n\n\n\n\n\n\n\n")
+        # print("SORTED TARGET: ", sorted_target)
+        # print("\n\n\n\n\n\n\n\n\n")
         schedule_target += sorted_target
-        print("SCHEDULE TARGET: ", schedule_target)
-        print("\n\n\n\n\n\n\n\n\n")
+        # print("SCHEDULE TARGET: ", schedule_target)
+        # print("\n\n\n\n\n\n\n\n\n")
         cnt += 1
         if (len(schedule_target) > 100):
             break
 
+    print(len(schedule_target))
+    # print("\nSCHEDULE TARGET:\n", schedule_target)
     default_schedule, default_schedule_chart, targets_observable_time = get_observable_time(uhaveid, pid, schedule_target)
+    print(default_schedule)
 
     return [default_schedule, default_schedule_chart, targets_observable_time]
 
@@ -162,6 +165,7 @@ def get_observable_time(uhaveid: int, pid: int, sorted_target: list):
     current_time = datetime.now()
     base_time = datetime.strptime(str(current_time).split(' ')[0]+' 12:00', '%Y-%m-%d %H:%M')
     observability = []
+    target_datetime = []
     tid_list = []
     # 0602
     schedule_filled = [-1]*1440
@@ -188,7 +192,7 @@ def get_observable_time(uhaveid: int, pid: int, sorted_target: list):
         t2o, mode = get_time2observe(pid, tid)
 
         # 0512
-        hint = "Please Observe Filter"
+        hint = "Please Observe with Filter"
         t2o_total = 0
         for i in range(len(filter_array)):
             if t2o[i] != 0:
@@ -204,6 +208,8 @@ def get_observable_time(uhaveid: int, pid: int, sorted_target: list):
 
         # get the observable time
         t_start, t_end = obtime.run(uhaveid, longitude, latitude, altitude, elevation_lim, tid, ra, dec, base_time)
+        print(uhaveid, longitude, latitude, altitude, elevation_lim, tid, ra, dec)
+        print(t_start, t_end)
 
         # make the observability chart to each target
         if str(t_start) != 'nan' and str(t_end) != 'nan':
@@ -241,6 +247,14 @@ def get_observable_time(uhaveid: int, pid: int, sorted_target: list):
             schedule_filled = schedule_filled[:1440]
 
             observability.append(temp.copy())
+
+            # 0921 add datetime format to each observable target
+            temp = {}
+            temp['TID'] = tid
+            temp['Start'] = t_start
+            temp['End'] = t_start + timedelta(minutes=t_last)
+            temp['Hint'] = hint
+            target_datetime.append(temp.copy())
             
             # if the schedule is full, stop calculation
             if -1 not in schedule_filled:
@@ -250,7 +264,14 @@ def get_observable_time(uhaveid: int, pid: int, sorted_target: list):
     # calculate default schedule
     default_schedule, default_schedule_chart, targets_observable_time = calculate_default_schedule(base_time, tid_list, observability, hint_msgs)
 
-    return default_schedule, default_schedule_chart, targets_observable_time
+    '''
+    default_schedule: TID, start / end time in datetime format, HINT
+    default_schedule_chart: array len 1440, TID in each element
+    targets_observable_time: array len 1440 for each target (-1 or TID in each element)
+    '''
+
+    # return default_schedule, default_schedule_chart, targets_observable_time, observability_datetime
+    return default_schedule, target_datetime
 
 # 0505 + 0512
 def calculate_default_schedule(base_time, tid_list, observable_time, hint_msgs):
