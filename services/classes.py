@@ -15,7 +15,6 @@ class User(GraphObject):
     hashed_password = Property()
     created_on = Property()
     last_logon = Property()
-    project_priority = Property() # 0331
     UhaveE = RelatedTo("Equipments","OWNER")
     Manage = RelatedTo("Projects","OWN")   
 
@@ -26,7 +25,7 @@ class Equipments(GraphObject):
     aperture = Property()
     Fov = Property()
     pixel_scale = Property()
-    tracking_accurcay = Property()
+    tracking_accuracy = Property()
     lim_magnitude = Property()
     elevation_lim = Property()
     mount_type = Property()
@@ -39,7 +38,8 @@ class Equipments(GraphObject):
     SDSSg = Property()
     SDSSr = Property()
     SDSSi = Property()
-    SDSSz =Property()
+    SDSSz = Property()
+    project_priority = Property() # 0921
     owner = RelatedFrom(User,"UHAVEE")
 
 class Target(GraphObject):
