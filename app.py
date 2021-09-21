@@ -304,7 +304,10 @@ def getSchedule():
         session["usr"] = usr
         uhaveid =  request.json['id']
         print("UHAVEID: ", uhaveid, "USER: ", usr)
-        return jsonify(generate_default_schedule(usr, uhaveid))
+        UID = get_uid(usr)
+        EID = get_eid(uhaveid)
+        return jsonify(query_schedule(UID,EID,str(date.today())))
+        #return jsonify(generate_default_schedule(usr, uhaveid))
     else:
         return "login"
 

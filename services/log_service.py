@@ -32,10 +32,5 @@ def query_log(user:str,date:str):
     for result in observe_log.find({'user_email':user, 'date': {'$regex': date, '$options': 'i'}}):
         print(result)
 
-def save_schedule(schedule:str):
-    schedule.insert(schedule)
 
-def query_schedule(user:str,date:str):
-    for result in schedule_col.find({'user_email':user, 'date': {'$regex': date, '$options': 'i'}}):
-        print(result)
 
