@@ -322,6 +322,14 @@ def get_qualified_equipment(usr: str, PID: int):
 
 #this function is uesd for test, the user will auto join the project
 def auto_join(usr: str, PID: int):
+    #check if already joined the project 
+    query = "MATCH (x:user {email:$usr})-[r]->(p:project{PID:$PID})  return exists((x)-[:Member_of]->(p))"
+    exist = graph.run(query,usr = usr, PID = PID).data()
+    print(exist[0])
+    if(exist[0]):
+        print("exist")
+        return
+
     # create user-project relationship
     query = "MATCH (x:user {email:$usr}) MATCH (p:project {PID:$PID})  create (x)-[:Member_of {memberofid: $memberofid, join_time: $join_time}]->(p)"
     time = graph.run("return datetime() as time").data() 

@@ -24,10 +24,11 @@ graph = db_auth() #connect to neo4j
 def ind():
     return "It's working man"
 
+'''
 @app.route('/accounts/register', methods=['GET'])
 def register_get():
     return render_template("accounts/register.html")
-
+'''
 
 @app.route('/accounts/register', methods=['POST'])
 def register_post():
