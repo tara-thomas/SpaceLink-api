@@ -2,10 +2,15 @@ from services.classes import Target
 from data.db_session import db_auth
 from astroquery.simbad import Simbad
 import webbrowser, json
+from werkzeug.utils import secure_filename
+import csv 
+import re
 
-
+FILTER = ['Johnson_B','Johnson_V','Johnson_R','SDSS_u','SDSS_g','SDSS_r','SDSS_i','SDSS_z']
+PATTERN = re.compile('.*[0-9][0-9]:[0-9][0-9]:[0-9][0-9].[0-9]')
 
 graph = db_auth()
+
 
 #return all the target in the DB, this version limit the number to 100 
 def get_target():
@@ -94,3 +99,165 @@ def query_from_simbad(targetName: str):
         print("Target doesn't exist.")
 
     
+def allowed_file(filename: str):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def check_format(filename: str):
+    #print(filename)
+    with open(filename, newline="") as csvfile:
+        rows = csv.DictReader(csvfile)
+
+        for index, row in enumerate(rows):
+            #name check
+            if len(row['Name']) == 0:
+                return "rows "+ str(index+1) + " error : Please enter target name" 
+            elif len(row['Name']) > 50 :
+                return "rows "+ str(index+1) + " error : Name is too long"
+
+            #ra check
+            try:
+                ra = float(row['ra'])
+                if  ra < 0 or ra > 360 :
+                    return "rows "+ str(index+1) + " error : RA format error"
+            except ValueError:
+                try :
+                    result = PATTERN.match(row['ra'])
+                    #print(result)
+                    if result == None: 
+                        raise Exception
+                    
+                    #print(result.group())
+                    h,m,s= result.group().split(':',3)
+                    
+                    h = float(h)
+                    m = float(m)
+                    s = float(s)
+                    if h < 0 or h > 23:
+                        raise Exception
+                    if m < 0 or m > 59:
+                        raise Exception
+                    if s < 0 or s > 59.9:
+                        raise Exception
+                    
+                    ra = (h+ m/60+ s/3600) * 15
+
+                except Exception:
+                    return "rows "+ str(index+1) + " error : RA format error"
+                pass
+            
+            #dec check
+            try:
+                dec = float(row['dec'])
+                if dec < -90 or dec > 90:
+                    return "rows "+ str(index+1) + " error : Dec format error"
+            except ValueError:
+                try :
+                    result = PATTERN.match(row['dec'])
+                    if result == None: 
+                        raise Exception
+                    
+                    #print(result.group())
+                    d,m,s= result.group().split(':',3)
+                    
+                    d = float(d)
+                    m = float(m)
+                    s = float(s)
+                    print(d,m,s)
+                    if d < -90 or d > 90:
+                        raise Exception
+                    if m < 0 or m > 59:
+                        raise Exception
+                    if s < 0 or s > 59.9:
+                        raise Exception
+
+                    dec = d + m/60 + s/3600
+                except Exception:
+                    return "rows "+ str(index+1) + " error : Dec format error"
+                pass
+            
+            #filter and mode check
+            mode = int(row['Mode'])
+            if mode < 0 or mode > 2 :
+                return "rows "+ str(index+1) + " error : Mode format error"      
+            
+            for filter in FILTER:
+                if row[filter]!= 'Y' and row[filter] != "N":
+                    return "rows "+ str(index+1) + " error : " + filter + " format error"      
+                if not mode and row[filter] == 'Y':
+                    try:
+                        time = float(row[filter+'_Time']) 
+                        if time < 0 :
+                            raise Exception
+                    except ValueError: 
+                        return "rows "+ str(index+1) + " error : \"" + filter + "_Time\" format error"   
+
+            if mode:
+                try:
+                    time = float(row['Total_cycle__time'])
+                    if time < 0:
+                        raise Exception
+                except ValueError:
+                    return "rows "+ str(index+1) + " error : \"Total cycle time\" format error"   
+
+    csvfile.close()
+    return "Success"
+
+def upload_2_DB(filename : str, PID : int, usr: str):
+    
+    with open(filename, newline="") as csvfile:
+        rows = csv.DictReader(csvfile)
+        
+        for index,row in rows:
+            #change coordinate unit to degree
+            try:
+                float(row['ra'])
+            except Exception:
+                h,m,s= row['ra'].split(':',3)    
+                h = float(h)
+                m = float(m)
+                s = float(s)
+                row['ra'] = (h+ m/60+ s/3600) * 15
+        
+            #change coordinate unit to degree
+            try:
+                float(row['dec'])
+            except Exception:
+                d,m,s= row['dec'].split(':',3)    
+                d = float(d)
+                m = float(m)
+                s = float(s)
+                row['dec'] = h+ m/60+ s/3600
+
+            print(row['ra'],row['dec'])
+            #query by coordinate to check target exist or not
+            query = "MATCH(t:target{ra:$ra, dec:$dec}) return t.TID as TID"
+            result = graph.run(query,ra = row['ra'],dec=row['dec']).data()
+            if not len(result):
+                #if not, create the target node 
+                count = graph.run("MATCH (t:target) return t.TID  order by t.TID DESC limit 1 ").data()
+                target = Target()
+                if len(count) == 0:
+                    target.TID = 0
+                else:
+                    target.TID = count[0]['t.TID']+1
+                    TID = target.TID
+                target.name = row['Name']
+                target.longitude = row['ra']
+                target.latitude = row['dec']
+                graph.create(target) 
+            else:
+                TID = int(result['TID']) 
+            
+            #create project target relationship
+            query="MATCH (p:project {PID: $PID}) MATCH (t:target {TID:$TID}) create (p)-[pht:PHaveT {phavetid:$phavetid, JohnsonB:$JohnsonB, JohnsonV:$JohnsonV, JohnsonR:$JohnsonR, SDSSu:$SDSSu, SDSSg:$SDSSg, SDSSr:$SDSSr, SDSSi:$SDSSi, SDSSz:$SDSSz, Time_to_Observe:$time2observe}]->(t) return pht.phavetid"
+            #update_project_equipment_observe_list(usr,PID,TID,row['Johnson_B'], row['Johnson_R'], row['Johnson_V'],row['SDSS_u'],row['SDSS_g'],row['SDSS_r'],row['SDSS_i'],['SDSS_z'])
+            count = graph.run("MATCH ()-[pht:PHaveT]->() return pht.phavetid  order by pht.phavetid DESC limit 1 ").data()
+            if len(count) == 0:
+                cnt = 0
+            else:
+                cnt = count[0]['pht.phavetid']+1
+                result = graph.run(query, PID = PID, TID = TID, phavetid = cnt, JohnsonB = row['Johnson_B'], JohnsonR = row['Johnson_R'], JohnsonV = row['Johnson_B'] \
+                    , SDSSg = row['SDSS_g'], SDSSi = row['SDSS_i'], SDSSr = row['SDSS_r'], SDSSu = row['SDSS_u'], SDSSz = row['SDSS_z'], Time_to_Observe= time2observe).data()
+
+    return 1

@@ -9,11 +9,15 @@ from services.friend_service import *
 from services.target_service import *
 from services.postgres_service import *
 from services.log_service import *
-import os
+import os, uuid, pathlib
 import random
 
+ALLOWED_EXTENSIONS = {'csv', 'tsv'}
+UPLOAD_FOLDER = str(pathlib.Path().resolve())
 app = Flask(__name__) #create application
 app.secret_key = os.urandom(24) 
+app.config['MAX_CONTENT_LENGTH'] = 32 * 1024 * 1024
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 CORS(app)
 
 graph = db_auth() #connect to neo4j
@@ -686,6 +690,49 @@ def addTarget():
 #             return render_template("projects/project_target.html", project_target = project_target)
 #     else:
 #         return redirect(url_for("login_get"))
+
+
+@app.route('/project/upload_target_from_file', methods=['POST'])
+def upload_file():
+    usr = session["usr"]
+    session["usr"] = usr
+    PID = request.json['PID'].strip()
+    if request.method == 'POST':
+        # check if the post request has the file part
+        if 'file' not in request.files:
+            flash('No file part')
+            print("file not found")
+            return "Upload failed"
+        file = request.files['file']
+        # If the user does not select a file, the browser submits an
+        # empty file without a filename.
+        if file.filename == '':
+            flash('No selected file')
+            return "Upload failed"
+        if file and allowed_file(file.filename):
+            #certe random and secure name forthe upload file 
+            filename = secure_filename(file.filename) + '_' +str(uuid.uuid4())
+            print(filename)
+
+            #if the directory not exist, then create one 
+            path = os.path.join(app.config['UPLOAD_FOLDER'],"upload_tmp")
+            pathlib.Path(path).mkdir(parents=True,exist_ok=True)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'],"upload_tmp",filename)
+            file.save(filepath)
+            
+            #check the file format 
+            check_format_result = check_format(filepath);
+            if( check_format_result != "Success"):
+                os.remove(filepath)
+                return check_format_result
+            #upload file to DB
+            if(upload_2_DB(filepath,PID,usr)): 
+                return "Upload success"
+            else:
+                return "Upload failed"
+            os.remove(filepath)
+        else :
+            print("Not supported file")
 
 
 @app.route('/accounts/logout')
