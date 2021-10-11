@@ -1,6 +1,7 @@
 from services.classes import Target
 from data.db_session import db_auth
 from astroquery.simbad import Simbad
+from services.project_service import update_project_equipment_observe_list
 import webbrowser, json
 from werkzeug.utils import secure_filename
 import csv 
@@ -182,7 +183,7 @@ def check_format(filename: str):
                 return "rows "+ str(index+1) + " error : Mode format error"      
             
             for filter in FILTER:
-                if row[filter]!= 'Y' and row[filter] != "N":
+                if row[filter].lower() != 'y' and row[filter].lower() != "n" and row[filter].lower() != 'yes' and row[filter].lower() != 'no':
                     return "rows "+ str(index+1) + " error : " + filter + " format error"      
                 if not mode and row[filter] == 'Y':
                     try:
@@ -248,16 +249,25 @@ def upload_2_DB(filename : str, PID : int, usr: str):
                 graph.create(target) 
             else:
                 TID = int(result['TID']) 
-            
+            time2observe = []
+
+
+            for filter in FILTER:
+                if row[filter].lower() == 'y' or row[filter].lower() == 'yes':
+                    row[filter] = 'y'
+                elif row[filter].lower() == 'n' or row[filter].lower() == 'no':
+                    row[filter] = 'n'
+                time2observe.append(float(row[filter+'_+Time']))
+
             #create project target relationship
-            query="MATCH (p:project {PID: $PID}) MATCH (t:target {TID:$TID}) create (p)-[pht:PHaveT {phavetid:$phavetid, JohnsonB:$JohnsonB, JohnsonV:$JohnsonV, JohnsonR:$JohnsonR, SDSSu:$SDSSu, SDSSg:$SDSSg, SDSSr:$SDSSr, SDSSi:$SDSSi, SDSSz:$SDSSz, Time_to_Observe:$time2observe}]->(t) return pht.phavetid"
-            #update_project_equipment_observe_list(usr,PID,TID,row['Johnson_B'], row['Johnson_R'], row['Johnson_V'],row['SDSS_u'],row['SDSS_g'],row['SDSS_r'],row['SDSS_i'],['SDSS_z'])
+            query="MATCH (p:project {PID: $PID}) MATCH (t:target {TID:$TID}) create (p)-[pht:PHaveT {phavetid:$phavetid, JohnsonB:$JohnsonB, JohnsonV:$JohnsonV, JohnsonR:$JohnsonR, SDSSu:$SDSSu, SDSSg:$SDSSg, SDSSr:$SDSSr, SDSSi:$SDSSi, SDSSz:$SDSSz, Time_to_Observe:$time2observe, Mode:$mode }]->(t) return pht.phavetid"
+            update_project_equipment_observe_list(usr,PID,TID,row['Johnson_B'], row['Johnson_R'], row['Johnson_V'],row['SDSS_u'],row['SDSS_g'],row['SDSS_r'],row['SDSS_i'],row['SDSS_z'])
             count = graph.run("MATCH ()-[pht:PHaveT]->() return pht.phavetid  order by pht.phavetid DESC limit 1 ").data()
             if len(count) == 0:
                 cnt = 0
             else:
                 cnt = count[0]['pht.phavetid']+1
                 result = graph.run(query, PID = PID, TID = TID, phavetid = cnt, JohnsonB = row['Johnson_B'], JohnsonR = row['Johnson_R'], JohnsonV = row['Johnson_B'] \
-                    , SDSSg = row['SDSS_g'], SDSSi = row['SDSS_i'], SDSSr = row['SDSS_r'], SDSSu = row['SDSS_u'], SDSSz = row['SDSS_z'], Time_to_Observe= time2observe).data()
+                    , SDSSg = row['SDSS_g'], SDSSi = row['SDSS_i'], SDSSr = row['SDSS_r'], SDSSu = row['SDSS_u'], SDSSz = row['SDSS_z'], Time_to_Observe= time2observe, mode=row['Mode']).data()
 
     return 1

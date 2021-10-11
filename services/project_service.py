@@ -571,26 +571,26 @@ def update_project_equipment_observe_list(usr: str, PID: int, TID: int, JohnsonB
     target_lat = graph.run("MATCH(t:target{TID:$TID}) return t.latitude as lat", TID = TID).data()
     
     eq_list = get_project_equipment(PID)
-    if count(eq_list) == 0:
+    if len(eq_list) == 0:
         return 0
     else :
         for i in range(len(eq_list)):
             if eq_list[i]['JohnsonB'] == 'n':
-                if project_target[j]['JohnsonB'] == 'y': continue
+                if JohnsonB == 'y': continue
             if eq_list[i]['JohnsonV'] == 'n':
-                if project_target[j]['JohnsonV'] == 'y': continue
+                if JohnsonV == 'y': continue
             if eq_list[i]['JohnsonR'] == 'n':
-                if project_target[j]['JohnsonR'] == 'y': continue
+                if JohnsonR == 'y': continue
             if eq_list[i]['SDSSu'] == 'n':
-                if project_target[j]['SDSSu'] == 'y': continue
+                if SDSSu == 'y': continue
             if eq_list[i]['SDSSg'] == 'n':
-                if project_target[j]['SDSSg'] == 'y': continue
+                if SDSSg == 'y': continue
             if eq_list[i]['SDSSr'] == 'n':
-                if project_target[j]['SDSSr'] == 'y': continue
+                if SDSSr == 'y': continue
             if eq_list[i]['SDSsi'] == 'n':
-                if project_target[j]['SDSSi'] == 'y': continue
+                if SDSSi == 'y': continue
             if eq_list[i]['SDSSz'] == 'n':
-                if project_target[j]['SDSSz'] == 'y': continue
+                if SDSSz == 'y': continue
 
             # filter with equipment declination limit
             if float(eq_list[i]['declination']) <= 0 and float( target_lat[0]['lat']) < float(eq_list[i]['declination']):

@@ -727,10 +727,12 @@ def upload_file():
                 return check_format_result
             #upload file to DB
             if(upload_2_DB(filepath,PID,usr)): 
+                os.remove(filepath)
                 return "Upload success"
             else:
+                os.remove(filepath)
                 return "Upload failed"
-            os.remove(filepath)
+
         else :
             print("Not supported file")
 
