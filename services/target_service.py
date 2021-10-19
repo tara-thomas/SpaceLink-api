@@ -1,6 +1,8 @@
 from services.classes import Target
 from data.db_session import db_auth
 from astroquery.simbad import Simbad
+import astropy.coordinates as coord
+import astropy.units as u
 from services.project_service import update_project_equipment_observe_list
 import webbrowser, json
 from werkzeug.utils import secure_filename
@@ -13,7 +15,7 @@ PATTERN = re.compile('.*[0-9][0-9]:[0-9][0-9]:[0-9][0-9].[0-9]')
 graph = db_auth()
 
 
-#return all the target in the DB, this version limit the number to 100 
+# return all the target in the DB, this version limit the number to 100 
 def get_target():
     # this function will return all target
     query = "MATCH(t:target) return t.name as name order by t.TID limit 100"
@@ -21,29 +23,49 @@ def get_target():
     target = graph.run(query)
     return target
 
-#get a target's information
+# get a target's information
 def get_targetDetails(targetName: str):
     query = "MATCH(t:target{name:$name}) return t.longitude as ra, t.latitude as dec, t.TID as TID"
 
     targetDetails = graph.run(query, name=targetName).data()
     return targetDetails
 
-#get a target's node
+# get a target's node
 def get_targetNode(targetName: str):
     query = "MATCH(t:target{name:$name}) return t"
 
     targetNode = graph.run(query, name=targetName).data()
     return targetNode
 
-#search a target by keyword
+# search a target by keyword
 def search_target(text: str):
     query= "MATCH (t:target) where t.name =~ $text return t.name as name order by t.name "
     target = graph.run(query, text = text).data()
     print(target)
     return target
 
-# add target in Simbad to target table
-def query_from_simbad(targetName: str):
+# 1020 create target if it doesn't exist
+def create_target(targetName: str, ra: float, dec: float):
+    if(not get_targetDetails(targetName)):
+        # create the target
+        count = graph.run("MATCH (t:target) return t.TID  order by t.TID DESC limit 1 ").data()
+        
+        target = Target()
+        if len(count) == 0:
+            target.TID = 0
+        else:
+            target.TID = count[0]['t.TID']+1
+        target.name = targetName
+        target.longitude = ra
+        target.latitude = dec
+        graph.create(target)            
+
+        return "New target created!"
+    else:
+        return "Target already exists."
+
+# add target in Simbad to target table (1020 modify)
+def query_simbad_byName(targetName: str):
     limitedSimbad = Simbad()
     limitedSimbad.ROW_LIMIT = 5
 
@@ -74,31 +96,52 @@ def query_from_simbad(targetName: str):
         else:
             dec_degree = float(dec_split[0]) + float(dec_split[1])/60 + float(dec_split[2])/3600
             
-        webbrowser.open("https://simbad.u-strasbg.fr/simbad/sim-basic?Ident=" + targetName + "&submit=SIMBAD+search")
+        # webbrowser.open("https://simbad.u-strasbg.fr/simbad/sim-basic?Ident=" + targetName + "&submit=SIMBAD+search")
+        simbad_link = "https://simbad.u-strasbg.fr/simbad/sim-basic?Ident=" + targetName + "&submit=SIMBAD+search"
+
+        return {'name': targetName, 'ra': ra_degree, 'dec': dec_degree, 'link': simbad_link}
 
         # check if the target exist in target table
-        if(not get_targetDetails(targetName)):
-            # create the target
-            count = graph.run("MATCH (t:target) return t.TID  order by t.TID DESC limit 1 ").data()
+        # if(not get_targetDetails(targetName)):
+        #     # create the target
+        #     count = graph.run("MATCH (t:target) return t.TID  order by t.TID DESC limit 1 ").data()
             
-            target = Target()
-            if len(count) == 0:
-                target.TID = 0
-            else:
-                target.TID = count[0]['t.TID']+1
-            target.name = targetName
-            target.longitude = ra_degree
-            target.latitude = dec_degree
-            graph.create(target)            
-            print("NAME", target.name)
+        #     target = Target()
+        #     if len(count) == 0:
+        #         target.TID = 0
+        #     else:
+        #         target.TID = count[0]['t.TID']+1
+        #     target.name = targetName
+        #     target.longitude = ra_degree
+        #     target.latitude = dec_degree
+        #     graph.create(target)            
+        #     print("NAME", target.name)
 
-            return [{'name': target.name}]
-        else:
-            print("Target is already in the target table")
-            return [{'name': targetName}]
+        #     return [{'name': target.name}]
+        # else:
+        #     print("Target is already in the target table")
+        #     return [{'name': targetName}]
     else:
         print("Target doesn't exist.")
+        return None
 
+# 1020
+def query_simbad_byCoord(targetCoord: str, radius: float):
+    limitedSimbad = Simbad()
+    limitedSimbad.ROW_LIMIT = 5
+
+    # ra and dec in degree
+    if coord.find(":") == -1:
+        ra_degree, dec_degree = targetCoord.split(" ")
+        ra_degree = float(ra_degree)
+        dec_degree = float(dec_degree)
+
+    result_table = limitedSimbad.query_region(coord.SkyCoord(ra_degree, dec_degree,unit=(u.deg, u.deg), frame='fk5'), radius=0.1 * u.deg)
+    tar_list = []
+    for tar in result_table:
+        tar_list.append({'name': tar[0], 'ra': [1], 'dec': [2]})
+
+    return tar_list
     
 def allowed_file(filename: str):
     return '.' in filename and \

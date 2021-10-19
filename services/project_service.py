@@ -151,11 +151,6 @@ def get_project_orderby_priority(usr):
 
     return ori_project_priority
 
-# 0331 update the priority of users' projects
-def upadte_project_priority(usr, pid_list):
-    query = "MATCH (x:user {email:$usr}) set x.project_priority=$project_priority"
-    graph.run(query, usr=usr, project_priority=pid_list)
-
 #get a project observe target
 def get_project_target(pid: int):
     # consider to delete the targets that have reached the goal of observe time

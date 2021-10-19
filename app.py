@@ -229,22 +229,6 @@ def manageProject():
         return "login"
         #return redirect(url_for("login_get"))
 
-# 0331 show the ranking of users' joined projects
-@app.route('/accounts/rankedProjects', methods=['GET'])
-def getRankedProjects():
-    # get user customized ranking frome database
-    if "usr" in session:
-        usr = session["usr"]
-        session["usr"] = usr
-        user_profile = get_profile(usr)
-        projects = get_project_orderby_priority(usr)
-        return {'user_profile':user_profile, 'projects':projects}
-        #return render_template("accounts/joinedProjects.html", user_profile=user_profile, projects = projects)
-    else:
-        return "login"
-        #return redirect(url_for("login_get"))
-
-
 # 1019 for users to rank their joined projects
 @app.route('/accounts/rankedProjects', methods=['GET'])
 def getRankedProjects():
@@ -676,6 +660,20 @@ def project_create_post():
     else:
         return "login"
         # return redirect(url_for("login_get"))
+
+@app.route('/projects/createTarget', methods=['POST'])
+def createTarget():
+    targetName = request.json['name'].strip()
+    ra = request.json['ra'].strip()
+    dec = request.json['dec'].strip()
+    if "usr" in session:
+        usr = session["usr"]
+        session["usr"] = usr
+        msg = create_target(targetName, ra, dec)
+        return msg
+    else:
+        return "login"
+
 @app.route('/projects/addTarget', methods=['POST'])
 def addTarget():
     PID = request.json['PID'].strip()
