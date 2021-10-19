@@ -9,11 +9,15 @@ from services.friend_service import *
 from services.target_service import *
 from services.postgres_service import *
 from services.log_service import *
-import os
+import os, uuid, pathlib
 import random
 
+ALLOWED_EXTENSIONS = {'csv', 'tsv'}
+UPLOAD_FOLDER = str(pathlib.Path().resolve())
 app = Flask(__name__) #create application
 app.secret_key = os.urandom(24) 
+app.config['MAX_CONTENT_LENGTH'] = 32 * 1024 * 1024
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 CORS(app)
 
 graph = db_auth() #connect to neo4j
@@ -24,10 +28,11 @@ graph = db_auth() #connect to neo4j
 def ind():
     return "It's working man"
 
+'''
 @app.route('/accounts/register', methods=['GET'])
 def register_get():
     return render_template("accounts/register.html")
-
+'''
 
 @app.route('/accounts/register', methods=['POST'])
 def register_post():
@@ -201,9 +206,17 @@ def getJoinedProjects():
     if request.headers['user']:
         usr = request.headers['user']
         session["usr"] = usr
+<<<<<<< HEAD
     user_profile = get_profile(usr)
     projects = get_project_join(usr)
     return {'user_profile':user_profile,'projects':projects}
+=======
+        user_profile = get_profile(usr)
+        projects = get_project_join(usr)
+        if(projects == None):
+            return "Not joined project yet!"
+        return {'user_profile':user_profile,'projects':projects}
+>>>>>>> 29fe9a7ce21c2a6da72935dde7de9363a08cc5a1
         #return render_template("accounts/joinedProjects.html", user_profile=user_profile, projects = projects)
     # else:
     #     return "login"
@@ -222,29 +235,36 @@ def manageProject():
         return "login"
         #return redirect(url_for("login_get"))
 
-# 0331 show the ranking of users' joined projects
+# 1019 for users to rank their joined projects
 @app.route('/accounts/rankedProjects', methods=['GET'])
 def getRankedProjects():
+<<<<<<< HEAD
     # get user customized ranking frome database
     if request.headers['user']:
         usr = request.headers['user']
+=======
+
+    EID = int(request.json['EID'])
+    if "usr" in session:
+        usr = session["usr"]
+>>>>>>> 29fe9a7ce21c2a6da72935dde7de9363a08cc5a1
         session["usr"] = usr
         user_profile = get_profile(usr)
-        projects = get_project_orderby_priority(usr)
-        return {'user_profile':user_profile, 'projects':projects}
+              
+        projects = get_equipment_project_priority(usr,EID);
+            
+        return {'projects':projects}
         #return render_template("accounts/joinedProjects.html", user_profile=user_profile, projects = projects)
     else:
-        return "login"
+        return "login" 
         #return redirect(url_for("login_get"))
 
 # 0331 for users to rank their joined projects
 @app.route('/accounts/rankedProjects', methods=['POST'])
 def postRankedProjects():
-    # get user customized ranking
-    ''' TODO '''
-    pid_list = []
-    # expected a PID list
 
+    EID = int(request.json['EID'])
+    pid_list = request.json['list']
     if "usr" in session:
         usr = session["usr"]
         session["usr"] = usr
@@ -252,13 +272,17 @@ def postRankedProjects():
         
         # only when user click the save button would update the database
         if request.form.get('button') == 'save':
+<<<<<<< HEAD
             update_equipment_project_priority(usr, pid_list)
+=======
+            update_equipment_project_priority(usr,EID,pid_list)
+>>>>>>> 29fe9a7ce21c2a6da72935dde7de9363a08cc5a1
 
         if request.form.get('button') == 'reset':
             projects = get_project_join(usr)
             projects = get_project_default_priority(projects)
 
-        return {'user_profile':user_profile, 'projects':projects}
+        return "success"
         #return render_template("accounts/joinedProjects.html", user_profile=user_profile, projects = projects)
     else:
         return "login" 
@@ -303,7 +327,10 @@ def getSchedule():
         session["usr"] = usr
         uhaveid =  request.json['id']
         print("UHAVEID: ", uhaveid, "USER: ", usr)
-        return jsonify(generate_default_schedule(usr, uhaveid))
+        UID = get_uid(usr)
+        EID = get_eid(uhaveid)
+        return jsonify(query_schedule(UID,EID,str(date.today())))
+        #return jsonify(generate_default_schedule(usr, uhaveid))
     else:
         return "login"
 
@@ -650,6 +677,20 @@ def project_create_post():
     else:
         return "login"
         # return redirect(url_for("login_get"))
+
+@app.route('/projects/createTarget', methods=['POST'])
+def createTarget():
+    targetName = request.json['name'].strip()
+    ra = request.json['ra'].strip()
+    dec = request.json['dec'].strip()
+    if "usr" in session:
+        usr = session["usr"]
+        session["usr"] = usr
+        msg = create_target(targetName, ra, dec)
+        return msg
+    else:
+        return "login"
+
 @app.route('/projects/addTarget', methods=['POST'])
 def addTarget():
     PID = request.json['PID'].strip()
@@ -683,6 +724,51 @@ def addTarget():
 #             return render_template("projects/project_target.html", project_target = project_target)
 #     else:
 #         return redirect(url_for("login_get"))
+
+
+@app.route('/project/upload_target_from_file', methods=['POST'])
+def upload_file():
+    usr = session["usr"]
+    session["usr"] = usr
+    PID = request.json['PID'].strip()
+    if request.method == 'POST':
+        # check if the post request has the file part
+        if 'file' not in request.files:
+            flash('No file part')
+            print("file not found")
+            return "Upload failed"
+        file = request.files['file']
+        # If the user does not select a file, the browser submits an
+        # empty file without a filename.
+        if file.filename == '':
+            flash('No selected file')
+            return "Upload failed"
+        if file and allowed_file(file.filename):
+            #certe random and secure name forthe upload file 
+            filename = secure_filename(file.filename) + '_' +str(uuid.uuid4())
+            print(filename)
+
+            #if the directory not exist, then create one 
+            path = os.path.join(app.config['UPLOAD_FOLDER'],"upload_tmp")
+            pathlib.Path(path).mkdir(parents=True,exist_ok=True)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'],"upload_tmp",filename)
+            file.save(filepath)
+            
+            #check the file format 
+            check_format_result = check_format(filepath);
+            if( check_format_result != "Success"):
+                os.remove(filepath)
+                return check_format_result
+            #upload file to DB
+            if(upload_2_DB(filepath,PID,usr)): 
+                os.remove(filepath)
+                return "Upload success"
+            else:
+                os.remove(filepath)
+                return "Upload failed"
+
+        else :
+            print("Not supported file")
 
 
 @app.route('/accounts/logout')

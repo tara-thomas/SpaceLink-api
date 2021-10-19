@@ -151,11 +151,6 @@ def get_project_orderby_priority(usr):
 
     return ori_project_priority
 
-# 0331 update the priority of users' projects
-def upadte_project_priority(usr, pid_list):
-    query = "MATCH (x:user {email:$usr}) set x.project_priority=$project_priority"
-    graph.run(query, usr=usr, project_priority=pid_list)
-
 #get a project observe target
 def get_project_target(pid: int):
     # consider to delete the targets that have reached the goal of observe time
@@ -322,6 +317,14 @@ def get_qualified_equipment(usr: str, PID: int):
 
 #this function is uesd for test, the user will auto join the project
 def auto_join(usr: str, PID: int):
+    #check if already joined the project 
+    query = "MATCH (x:user {email:$usr})-[r]->(p:project{PID:$PID})  return exists((x)-[:Member_of]->(p))"
+    exist = graph.run(query,usr = usr, PID = PID).data()
+    print(exist[0])
+    if(exist[0]):
+        print("exist")
+        return
+
     # create user-project relationship
     query = "MATCH (x:user {email:$usr}) MATCH (p:project {PID:$PID})  create (x)-[:Member_of {memberofid: $memberofid, join_time: $join_time}]->(p)"
     time = graph.run("return datetime() as time").data() 
@@ -473,6 +476,8 @@ def get_project_join(usr: str):
         "p.mount_type as mount_type, p.camera_type1 as camera_type1, p.camera_type2 as camera_type2, p.JohnsonB as JohnsonB, p.JohnsonR as JohnsonR, p.JohnsonV as JohnsonV, p.SDSSu as SDSSu," \
         "p.SDSSg as SDSSg, p.SDSSr as SDSSr, p.SDSSi as SDSSi, p.SDSSz as SDSSz, p.PID as PID order by PID"
     join_list = graph.run(query, usr = usr).data()
+    if  len(join_list) == 0 : 
+        return None
     return  join_list
 
 #return the project based on user's equipment 
@@ -563,26 +568,26 @@ def update_project_equipment_observe_list(usr: str, PID: int, TID: int, JohnsonB
     target_lat = graph.run("MATCH(t:target{TID:$TID}) return t.latitude as lat", TID = TID).data()
     
     eq_list = get_project_equipment(PID)
-    if count(eq_list) == 0:
+    if len(eq_list) == 0:
         return 0
     else :
         for i in range(len(eq_list)):
             if eq_list[i]['JohnsonB'] == 'n':
-                if project_target[j]['JohnsonB'] == 'y': continue
+                if JohnsonB == 'y': continue
             if eq_list[i]['JohnsonV'] == 'n':
-                if project_target[j]['JohnsonV'] == 'y': continue
+                if JohnsonV == 'y': continue
             if eq_list[i]['JohnsonR'] == 'n':
-                if project_target[j]['JohnsonR'] == 'y': continue
+                if JohnsonR == 'y': continue
             if eq_list[i]['SDSSu'] == 'n':
-                if project_target[j]['SDSSu'] == 'y': continue
+                if SDSSu == 'y': continue
             if eq_list[i]['SDSSg'] == 'n':
-                if project_target[j]['SDSSg'] == 'y': continue
+                if SDSSg == 'y': continue
             if eq_list[i]['SDSSr'] == 'n':
-                if project_target[j]['SDSSr'] == 'y': continue
+                if SDSSr == 'y': continue
             if eq_list[i]['SDSsi'] == 'n':
-                if project_target[j]['SDSSi'] == 'y': continue
+                if SDSSi == 'y': continue
             if eq_list[i]['SDSSz'] == 'n':
-                if project_target[j]['SDSSz'] == 'y': continue
+                if SDSSz == 'y': continue
 
             # filter with equipment declination limit
             if float(eq_list[i]['declination']) <= 0 and float( target_lat[0]['lat']) < float(eq_list[i]['declination']):

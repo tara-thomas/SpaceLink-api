@@ -1,15 +1,22 @@
+from os import scandir
 from data.db_session import db_auth
 from typing import Optional
 from passlib.handlers.sha2_crypt import sha512_crypt as crypto
 from services.classes import User, Target, Equipments, Project, Schedule
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from services.project_service import get_project_target
+from services.accounts_service import get_uid
+from flask import jsonify
 
 import astro.declination_limit_of_location as declination
 import astro.astroplan_calculations as obtime
 import random
+import pymongo
 
 graph = db_auth()
+client = pymongo.MongoClient("mongodb://localhost:27017/")
+db = client["SpaceLink"]
+schedule_db = db['schedule']
 
 # needs modification
 '''
@@ -126,9 +133,21 @@ def generate_default_schedule(usr: str, uhaveid: int):
     print(len(schedule_target))
     # print("\nSCHEDULE TARGET:\n", schedule_target)
     default_schedule, target_datetime = get_observable_time(uhaveid, pid, schedule_target)
+<<<<<<< HEAD
     print(default_schedule)
 
     return [default_schedule, target_datetime]
+=======
+
+    schedule = {}
+    schedule["default_schedule"] = default_schedule
+    schedule["target_schedule"] = target_datetime
+    #print([default_schedule, target_datetime])
+    uid = get_uid(usr)
+    save_schedule(uid,eid,schedule)
+
+    #return [default_schedule, target_datetime]
+>>>>>>> 29fe9a7ce21c2a6da72935dde7de9363a08cc5a1
 
 # 0331 sort targets' priority
 def sort_project_target(project_target):
@@ -163,7 +182,6 @@ def get_time2observe(pid, tid):
 # 0421 + 0505 + 0512
 def get_observable_time(uhaveid: int, pid: int, sorted_target: list):
     current_time = datetime.now()
-    base_time = datetime.strptime(str(current_time).split(' ')[0]+' 12:00', '%Y-%m-%d %H:%M')
     observability = []
     target_datetime = []
     tid_list = []
@@ -171,11 +189,12 @@ def get_observable_time(uhaveid: int, pid: int, sorted_target: list):
     schedule_filled = [-1]*1440
 
     # get information from uhavee and equipment table
-    query_relation = "MATCH (x:user)-[h:UhaveE{uhaveid:$uhaveid}]->(e:equipments) return h.longitude as longitude, h.latitude as latitude, h.altitude as altitude, e.elevation_lim as elevation_lim"
+    query_relation = "MATCH (x:user)-[h:UhaveE{uhaveid:$uhaveid}]->(e:equipments) return h.longitude as longitude, h.latitude as latitude, h.altitude as altitude, h.time_zone as time_zone, e.elevation_lim as elevation_lim"
     eq_info = graph.run(query_relation, uhaveid=uhaveid).data()
     longitude = float(eq_info[0]['longitude'])
     latitude = float(eq_info[0]['latitude'])
     altitude = float(eq_info[0]['altitude'])
+    time_zone = int(eq_info[0]['time_zone'].split("C")[1])
     elevation_lim = float(eq_info[0]['elevation_lim'])
 
     # 0512
@@ -183,6 +202,11 @@ def get_observable_time(uhaveid: int, pid: int, sorted_target: list):
     hint_msgs = {}
     # /0512
 
+    # 1020 convert basetime from local to UTC time
+    base_time = datetime.strptime(str(current_time).split(' ')[0]+' 12:00', '%Y-%m-%d %H:%M')
+    base_time -= timedelta(hours=time_zone)
+    utc2local = False
+    # /1020
     for tar in sorted_target:
         tid = int(tar['TID'])
         ra = float(tar['lon'])
@@ -208,13 +232,20 @@ def get_observable_time(uhaveid: int, pid: int, sorted_target: list):
 
         # get the observable time
         t_start, t_end = obtime.run(uhaveid, longitude, latitude, altitude, elevation_lim, tid, ra, dec, base_time)
-        print(uhaveid, longitude, latitude, altitude, elevation_lim, tid, ra, dec)
-        print(t_start, t_end)
+        # print(uhaveid, longitude, latitude, altitude, elevation_lim, tid, ra, dec)
+        # print(t_start, t_end)
 
         # make the observability chart to each target
         if str(t_start) != 'nan' and str(t_end) != 'nan':
             t_start = datetime.strptime(str(t_start)[:16], '%Y-%m-%dT%H:%M')
             t_end = datetime.strptime(str(t_end)[:16], '%Y-%m-%dT%H:%M')
+            # 1020 convert back to LOCAL time
+            t_start += timedelta(hours=time_zone)
+            t_end += timedelta(hours=time_zone)
+            if not utc2local:
+                base_time += timedelta(hours=time_zone)
+                utc2local = True
+            # /1020
 
             tid_list.append(tid)
 
@@ -321,3 +352,32 @@ def calculate_default_schedule(base_time, tid_list, observable_time, hint_msgs):
             default_schedule.append((temp.copy()))
 
     return default_schedule, default_schedule_chart, observable_time
+
+def save_schedule(UID:int, EID:int,schedule:list):
+    data = {}
+    data['UID'] = UID
+    data['EID'] = EID
+    data['date'] = str(date.today())
+    data['schedule'] = schedule
+    print(data)
+    schedule_db.insert_one(data)
+
+def query_schedule(UID:int,EID:int,date:str):
+    print(date)
+    result = schedule_db.find_one({"UID":UID,"EID":EID,"date":date})
+    #print(jsonify(result["schedule"]))
+    return result["schedule"]["default_schedule"],result["schedule"]["target_schedule"]
+
+def daily():
+    #query all user 
+    query = "MATCH (n:user) order by  n.UID DSEC return n.email as usr"
+    users = graph.run(query).data()
+
+    for i in range(len(users)):
+        query = "MATCH (n:user{email:$email})-[rel:UhaveE]->(e:equipments) return rel.uhaveid as uhaveid"
+        equipments = graph.run(query,email = users[i]['usr']).data()
+        for j in range(len(equipments)):
+            generate_default_schedule(users[i]['usr'],equipments[j]['uhaveid'])
+
+
+

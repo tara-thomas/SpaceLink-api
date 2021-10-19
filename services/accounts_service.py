@@ -27,6 +27,7 @@ def create_user(username: str, name: str, email: str, affiliation: str, title: s
     user = User()
     
     max_id = graph.run(f"MATCH (u:user) RETURN u.UID order by u.UID DESC LIMIT 1").data()  #generate a id for user
+    print(max_id)
     if len(max_id) == 0:
         user.UID = 0
     else:
