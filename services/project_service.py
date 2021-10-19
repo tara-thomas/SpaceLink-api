@@ -481,6 +481,8 @@ def get_project_join(usr: str):
         "p.mount_type as mount_type, p.camera_type1 as camera_type1, p.camera_type2 as camera_type2, p.JohnsonB as JohnsonB, p.JohnsonR as JohnsonR, p.JohnsonV as JohnsonV, p.SDSSu as SDSSu," \
         "p.SDSSg as SDSSg, p.SDSSr as SDSSr, p.SDSSi as SDSSi, p.SDSSz as SDSSz, p.PID as PID order by PID"
     join_list = graph.run(query, usr = usr).data()
+    if  len(join_list) == 0 : 
+        return None
     return  join_list
 
 #return the project based on user's equipment 

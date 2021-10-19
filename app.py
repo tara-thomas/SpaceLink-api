@@ -203,12 +203,14 @@ def joinProject():
 
 @app.route('/accounts/joinedProjects', methods=['GET'])
 def getJoinedProjects():
-    # if request.headers['user']:
-    #     usr = request.headers['user']
-    #     session["usr"] = usr
-    user_profile = get_profile("Ohputlm@Observatory229.com")
-    projects = get_project_join("Ohputlm@Observatory229.com")
-    return {'user_profile':user_profile,'projects':projects}
+    if request.headers['user']:
+        usr = request.headers['user']
+        session["usr"] = usr
+        user_profile = get_profile(usr)
+        projects = get_project_join(usr)
+        if(projects == None):
+            return "Not joined project yet!"
+        return {'user_profile':user_profile,'projects':projects}
         #return render_template("accounts/joinedProjects.html", user_profile=user_profile, projects = projects)
     # else:
     #     return "login"
@@ -242,14 +244,31 @@ def getRankedProjects():
         return "login"
         #return redirect(url_for("login_get"))
 
+
+# 1019 for users to rank their joined projects
+@app.route('/accounts/rankedProjects', methods=['GET'])
+def getRankedProjects():
+
+    EID = int(request.json['EID'])
+    if "usr" in session:
+        usr = session["usr"]
+        session["usr"] = usr
+        user_profile = get_profile(usr)
+              
+        projects = get_equipment_project_priority(usr,EID);
+            
+        return {'projects':projects}
+        #return render_template("accounts/joinedProjects.html", user_profile=user_profile, projects = projects)
+    else:
+        return "login" 
+        #return redirect(url_for("login_get"))
+
 # 0331 for users to rank their joined projects
 @app.route('/accounts/rankedProjects', methods=['POST'])
 def postRankedProjects():
-    # get user customized ranking
-    ''' TODO '''
-    pid_list = []
-    # expected a PID list
 
+    EID = int(request.json['EID'])
+    pid_list = request.json['list']
     if "usr" in session:
         usr = session["usr"]
         session["usr"] = usr
@@ -257,13 +276,13 @@ def postRankedProjects():
         
         # only when user click the save button would update the database
         if request.form.get('button') == 'save':
-            upadte_project_priority(usr, pid_list)
+            update_equipment_project_priority(usr,EID,pid_list)
 
         if request.form.get('button') == 'reset':
             projects = get_project_join(usr)
             projects = get_project_default_priority(projects)
 
-        return {'user_profile':user_profile, 'projects':projects}
+        return "success"
         #return render_template("accounts/joinedProjects.html", user_profile=user_profile, projects = projects)
     else:
         return "login" 

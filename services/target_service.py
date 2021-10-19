@@ -251,6 +251,12 @@ def upload_2_DB(filename : str, PID : int, usr: str):
                 TID = int(result['TID']) 
             time2observe = []
 
+            #TODO
+            if(int(row['Mode']) == 1):
+                row['Mode'] = float(row['Total_cycle__time'])
+            
+            #mode = totol_cycle_time
+
 
             for filter in FILTER:
                 if row[filter].lower() == 'y' or row[filter].lower() == 'yes':
