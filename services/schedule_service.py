@@ -125,10 +125,10 @@ def generate_default_schedule(usr: str, uhaveid: int):
 
     print(len(schedule_target))
     # print("\nSCHEDULE TARGET:\n", schedule_target)
-    default_schedule, default_schedule_chart, targets_observable_time = get_observable_time(uhaveid, pid, schedule_target)
+    default_schedule, target_datetime = get_observable_time(uhaveid, pid, schedule_target)
     print(default_schedule)
 
-    return [default_schedule, default_schedule_chart, targets_observable_time]
+    return [default_schedule, target_datetime]
 
 # 0331 sort targets' priority
 def sort_project_target(project_target):

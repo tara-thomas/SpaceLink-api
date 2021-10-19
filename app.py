@@ -198,11 +198,11 @@ def joinProject():
 
 @app.route('/accounts/joinedProjects', methods=['GET'])
 def getJoinedProjects():
-    # if request.headers['user']:
-    #     usr = request.headers['user']
-    #     session["usr"] = usr
-    user_profile = get_profile("Ohputlm@Observatory229.com")
-    projects = get_project_join("Ohputlm@Observatory229.com")
+    if request.headers['user']:
+        usr = request.headers['user']
+        session["usr"] = usr
+    user_profile = get_profile(usr)
+    projects = get_project_join(usr)
     return {'user_profile':user_profile,'projects':projects}
         #return render_template("accounts/joinedProjects.html", user_profile=user_profile, projects = projects)
     # else:
@@ -211,12 +211,12 @@ def getJoinedProjects():
 
 @app.route('/accounts/manageprojects', methods=['GET'])
 def manageProject():
-    if "usr" in session:
-        usr = session["usr"]
+    if request.headers['user']:
+        usr = request.headers['user']
         session["usr"] = usr
-        user_profile = get_profile(usr)
         projects = user_manage_projects_get(usr)
-        return {'user_profile':user_profile, 'projects':projects}
+        print(projects)
+        return {'projects': projects}
         #return render_template("accounts/manageprojects.html", user_profile=user_profile, projects = projects)
     else:
         return "login"
@@ -226,8 +226,8 @@ def manageProject():
 @app.route('/accounts/rankedProjects', methods=['GET'])
 def getRankedProjects():
     # get user customized ranking frome database
-    if "usr" in session:
-        usr = session["usr"]
+    if request.headers['user']:
+        usr = request.headers['user']
         session["usr"] = usr
         user_profile = get_profile(usr)
         projects = get_project_orderby_priority(usr)
@@ -252,7 +252,7 @@ def postRankedProjects():
         
         # only when user click the save button would update the database
         if request.form.get('button') == 'save':
-            upadte_project_priority(usr, pid_list)
+            update_equipment_project_priority(usr, pid_list)
 
         if request.form.get('button') == 'reset':
             projects = get_project_join(usr)
@@ -459,27 +459,28 @@ def equipments_post():
     SDSSr = request.json['SDSSr'].strip()
     SDSSi = request.json['SDSSi'].strip()
     SDSSz = request.json['SDSSz'].strip()
+    usr = request.headers['user']
+    print(usr)
+    session["usr"] = usr
     if "usr" in session:
         usr = session["usr"]
         session["usr"] = usr
-        '''TODO'''
-        if request.form.get('button') == 'update':            
-            hid = request.json['uhaveid'].strip() 
-            print(hid)
-            user_equipments = update_user_equipments(aperture,Fov,pixel_scale,tracking_accuracy,lim_magnitude,elevation_lim,mount_type,camera_type1,
-            camera_type2,JohnsonB,JohnsonR,JohnsonV,SDSSu,SDSSg,SDSSr,SDSSi,SDSSz,
-            usr,Site,Longitude,Latitude,Altitude,tz,daylight,wv,light_pollution,int(hid))
-        if request.form.get('button') == 'add':
-            equipments = create_equipments(aperture,Fov,pixel_scale,tracking_accuracy,lim_magnitude,elevation_lim,mount_type,camera_type1,camera_type2,JohnsonB,JohnsonR,JohnsonV,SDSSu,SDSSg,SDSSr,SDSSi,SDSSz)
-            print(equipments.EID)
-            user_equipments = create_user_equipments(usr,equipments.EID,Site,Longitude,Latitude,Altitude,tz,daylight,wv,light_pollution)
+        # if request.form.get('button') == 'update':            
+        #     hid = request.json['uhaveid'].strip() 
+        #     print(hid)
+        #     user_equipments = update_user_equipments(aperture,Fov,pixel_scale,tracking_accuracy,lim_magnitude,elevation_lim,mount_type,camera_type1,
+        #     camera_type2,JohnsonB,JohnsonR,JohnsonV,SDSSu,SDSSg,SDSSr,SDSSi,SDSSz,
+        #     usr,Site,Longitude,Latitude,Altitude,tz,daylight,wv,light_pollution,int(hid))
+        equipments = create_equipments(aperture,Fov,pixel_scale,tracking_accuracy,lim_magnitude,elevation_lim,mount_type,camera_type1,camera_type2,JohnsonB,JohnsonR,JohnsonV,SDSSu,SDSSg,SDSSr,SDSSi,SDSSz)
+        print(equipments.EID)
+        user_equipments = create_user_equipments(usr,equipments.EID,Site,Longitude,Latitude,Altitude,tz,daylight,wv,light_pollution)
             # create spatial user equipment
             # postgres_create_user_equipments(int(user_equipments.id),get_uid(usr), equipments.EID,Longitude,Latitude,Altitude)
-        if request.form.get('button') == 'delete':            
-            hid = request.json['uhaveid'].strip() 
-            delete_user_equipment(usr,int(hid))
-            # delete user's equipment in postgresSQL
-            postgres_delete_user_equipments(int(hid))
+        # if request.form.get('button') == 'delete':            
+        #     hid = request.json['uhaveid'].strip() 
+        #     delete_user_equipment(usr,int(hid))
+        #     # delete user's equipment in postgresSQL
+        #     postgres_delete_user_equipments(int(hid))
         user_equipments = get_user_equipments(usr)
         return {'user_equipments':user_equipments}
         #return render_template("accounts/equipments.html", user_equipments = user_equipments)
