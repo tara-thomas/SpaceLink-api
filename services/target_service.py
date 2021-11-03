@@ -121,21 +121,25 @@ def query_simbad_byCoord(targetCoord: str, rad: float, unit: str):
 def hms2degree(ra_hms: list, dec_dms: list):
     len_ra = len(ra_hms)
     len_dec = len(dec_dms)
+    if len_ra != 0:
+        ra_symbol = -1 if float(ra_hms[0]) < 0 else 1
+    if len_dec != 0:
+        dec_symbol = -1 if float(dec_dms[0]) < 0 else 1
 
     # transfer the unit of ra/dec from hms/dms to degrees
     if len_ra == 1:
         ra_degree = float(ra_hms[0]) * 15
     elif len_ra == 2:
-        ra_degree = (float(ra_hms[0]) + float(ra_hms[1])/60) * 15
+        ra_degree = (float(ra_hms[0]) + ra_symbol*float(ra_hms[1])/60) * 15
     else:
-        ra_degree = (float(ra_hms[0]) + float(ra_hms[1])/60 + float(ra_hms[2])/3600) * 15
+        ra_degree = (float(ra_hms[0]) + ra_symbol*float(ra_hms[1])/60 + ra_symbol*float(ra_hms[2])/3600) * 15
 
     if len_dec == 1:
         dec_degree = float(dec_dms[0])
     elif len_dec == 2:
-        dec_degree = float(dec_dms[0]) + float(dec_dms[1])/60
+        dec_degree = float(dec_dms[0]) + dec_symbol*float(dec_dms[1])/60
     else:
-        dec_degree = float(dec_dms[0]) + float(dec_dms[1])/60 + float(dec_dms[2])/3600
+        dec_degree = float(dec_dms[0]) + dec_symbol*float(dec_dms[1])/60 + dec_symbol*float(dec_dms[2])/3600
 
     return ra_degree, dec_degree
     
