@@ -266,15 +266,15 @@ def user_manage_projects_get(usr: str):
     return project
 
 #add a new target for project
-def create_project_target(usr: str, PID: int, TID: int, JohnsonB: str, JohnsonR: str, JohnsonV: str,SDSSu: str,SDSSg: str,SDSSr: str,SDSSi: str,SDSSz: str, time2observe: dict):
-    query="MATCH (p:project {PID: $PID}) MATCH (t:target {TID:$TID}) create (p)-[pht:PHaveT {phavetid:$phavetid, JohnsonB:$JohnsonB, JohnsonV:$JohnsonV, JohnsonR:$JohnsonR, SDSSu:$SDSSu, SDSSg:$SDSSg, SDSSr:$SDSSr, SDSSi:$SDSSi, SDSSz:$SDSSz, Time_to_Observe:$time2observe}]->(t) return pht.phavetid"
-    update_project_equipment_observe_list(usr,PID,TID,JohnsonB, JohnsonR, JohnsonV,SDSSu,SDSSg,SDSSr,SDSSi,SDSSz)
+def create_project_target(usr: str, PID: int, TID: int, JohnsonB: str, JohnsonR: str, JohnsonV: str,SDSSu: str,SDSSg: str,SDSSr: str,SDSSi: str,SDSSz: str, time2observe: list, mode: int, cycle_time: list):
+    query="MATCH (p:project {PID: $PID}) MATCH (t:target {TID:$TID}) create (p)-[pht:PHaveT {phavetid:$phavetid, JohnsonB:$JohnsonB, JohnsonV:$JohnsonV, JohnsonR:$JohnsonR, SDSSu:$SDSSu, SDSSg:$SDSSg, SDSSr:$SDSSr, SDSSi:$SDSSi, SDSSz:$SDSSz, Time_to_Observe:$time2observe, Mode:$mode, Cycle_Time:$cycle_time}]->(t) return pht.phavetid"
+    update_project_equipment_observe_list(usr, PID, TID, JohnsonB, JohnsonR, JohnsonV, SDSSu, SDSSg, SDSSr, SDSSi, SDSSz)
     count = graph.run("MATCH ()-[pht:PHaveT]->() return pht.phavetid  order by pht.phavetid DESC limit 1 ").data()
     if len(count) == 0:
         cnt = 0
     else:
         cnt = count[0]['pht.phavetid']+1
-    result = graph.run(query, PID = PID, TID = TID, phavetid = cnt, JohnsonB = JohnsonB, JohnsonR = JohnsonR, JohnsonV = JohnsonV, SDSSg = SDSSg, SDSSi = SDSSi, SDSSr = SDSSr, SDSSu = SDSSu, SDSSz = SDSSz, Time_to_Observe= time2observe).data()
+    result = graph.run(query, PID = PID, TID = TID, phavetid = cnt, JohnsonB = JohnsonB, JohnsonR = JohnsonR, JohnsonV = JohnsonV, SDSSg = SDSSg, SDSSi = SDSSi, SDSSr = SDSSr, SDSSu = SDSSu, SDSSz = SDSSz, Time_to_Observe = time2observe, Mode = mode, Cycle_Time = cycle_time).data()
     return result
 
 #
@@ -562,7 +562,7 @@ def fliter_project_target(usr: str, PID: int):
 
     return target
 
-#Update a equipment target list when add new target to project
+# Update a equipment target list when add new target to project
 def update_project_equipment_observe_list(usr: str, PID: int, TID: int, JohnsonB: str, JohnsonR: str, JohnsonV: str,SDSSu: str,SDSSg: str,SDSSr: str,SDSSi: str,SDSSz: str):
 
     target_lat = graph.run("MATCH(t:target{TID:$TID}) return t.latitude as lat", TID = TID).data()
@@ -601,7 +601,7 @@ def update_project_equipment_observe_list(usr: str, PID: int, TID: int, JohnsonB
             query = "MATCH (p:project {PID: $PID})-[rel:PHaveE]->(e:equipment{EID:$EID}) set rel.target_list={target_list:$target_list} "
             graph.run(query, PID = PID, EID = eq_list[i]['eid'], target_list = target_list)
 
-#initial a equipment target list when create project_equipment relationship
+# initial a equipment target list when create project_equipment relationship
 def initial_equipment_target_list(usr: str, EID: int, PID: int):
             
     project_target = graph.run("MATCH (p:project {PID: $PID})-[pht:PHaveT]->(t:target) " \

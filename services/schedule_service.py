@@ -163,15 +163,17 @@ def get_eid(uhaveid):
 
 # 0505 get the time need to observe of each target in projects
 def get_time2observe(pid, tid):
-    query = "MATCH (p:project{PID:$pid})-[r:PHaveT]->(t:target{TID:$tid}) RETURN r.Time_to_Observe as T2O, r.Mode as mode"
+    query = "MATCH (p:project{PID:$pid})-[r:PHaveT]->(t:target{TID:$tid}) RETURN r.Time_to_Observe as T2O, r.Mode as mode, r.Cycle_Time as cycle_time"
     result = graph.run(query, pid=pid, tid=tid).data()
 
     t2o = result[0]['T2O']
     t2o = [1000, 1000, 1080, 0, 300, 0, 0, 1500]
     mode = result[0]['mode']
     mode = 0
+    cycle_time = result[0]['cycle_time']
+    cycle_time = [-1, -1, -1, -1, -1, -1, -1, -1]
 
-    return t2o, mode
+    return t2o, mode, cycle_time
 
 # 0421 + 0505 + 0512
 def get_observable_time(uhaveid: int, pid: int, sorted_target: list):

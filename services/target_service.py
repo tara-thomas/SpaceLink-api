@@ -78,70 +78,74 @@ def query_simbad_byName(targetName: str):
         ra_split = ra.split(" ")
         dec_split = dec.split(" ")
 
-        len_ra = len(ra_split)
-        len_dec = len(dec_split)
-
-        # transfer the unit of ra/dec from hms/dms to degrees
-        if len_ra == 1:
-            ra_degree = float(ra_split[0]) * 15
-        elif len_ra == 2:
-            ra_degree = (float(ra_split[0]) + float(ra_split[1])/60) * 15
-        else:
-            ra_degree = (float(ra_split[0]) + float(ra_split[1])/60 + float(ra_split[2])/3600) * 15
-
-        if len_dec == 1:
-           dec_degree = float(dec_split[0])
-        elif len_dec == 2:
-            dec_degree = float(dec_split[0]) + float(dec_split[1])/60
-        else:
-            dec_degree = float(dec_split[0]) + float(dec_split[1])/60 + float(dec_split[2])/3600
+        ra_degree, dec_degree = hms2degree(ra_split, dec_split)
             
         # webbrowser.open("https://simbad.u-strasbg.fr/simbad/sim-basic?Ident=" + targetName + "&submit=SIMBAD+search")
         simbad_link = "https://simbad.u-strasbg.fr/simbad/sim-basic?Ident=" + targetName + "&submit=SIMBAD+search"
 
         return {'name': targetName, 'ra': ra_degree, 'dec': dec_degree, 'link': simbad_link}
-
-        # check if the target exist in target table
-        # if(not get_targetDetails(targetName)):
-        #     # create the target
-        #     count = graph.run("MATCH (t:target) return t.TID  order by t.TID DESC limit 1 ").data()
-            
-        #     target = Target()
-        #     if len(count) == 0:
-        #         target.TID = 0
-        #     else:
-        #         target.TID = count[0]['t.TID']+1
-        #     target.name = targetName
-        #     target.longitude = ra_degree
-        #     target.latitude = dec_degree
-        #     graph.create(target)            
-        #     print("NAME", target.name)
-
-        #     return [{'name': target.name}]
-        # else:
-        #     print("Target is already in the target table")
-        #     return [{'name': targetName}]
     else:
         print("Target doesn't exist.")
         return None
 
 # 1020
+<<<<<<< HEAD
 def query_simbad_byCoord(targetCoord: str, radius: str):
+=======
+def query_simbad_byCoord(targetCoord: str, rad: float, unit: str):
+>>>>>>> 98f677f3cb45cb081210f535e5b5023c52b5b62c
     limitedSimbad = Simbad()
     limitedSimbad.ROW_LIMIT = 5
+    # setup unit
+    if unit == "arcmin":
+        unit = u.arcmin
+    elif unit == "arcsec":
+        unit = u.arcsec
+    elif unit == "deg":
+        unit = u.deg
 
     # ra and dec in degree
     if targetCoord.find(":") == -1:
         ra_degree, dec_degree = targetCoord.split(" ")
         ra_degree = float(ra_degree)
         dec_degree = float(dec_degree)
+    # (h:m:s d:m:s) format
+    else:
+        ra_hms, dec_dms = targetCoord.split(" ")
+        ra_degree, dec_degree = hms2degree(ra_hms.split(":"), dec_dms.split(":"))
 
-    result_table = limitedSimbad.query_region(coord.SkyCoord(ra_degree, dec_degree,unit=(u.deg, u.deg), frame='fk5'), radius= float(radius)* u.deg)
+    result_table = limitedSimbad.query_region(coord.SkyCoord(ra_degree, dec_degree,unit=(u.deg, u.deg), frame='icrs'), radius=rad * unit)
     tar_list = []
     for tar in result_table:
         tar_list.append({'name': tar[0], 'ra': [1], 'dec': [2]})
 
     return tar_list
+
+# 1027 convert hms dms to degree
+def hms2degree(ra_hms: list, dec_dms: list):
+    len_ra = len(ra_hms)
+    len_dec = len(dec_dms)
+    if len_ra != 0:
+        ra_symbol = -1 if float(ra_hms[0]) < 0 else 1
+    if len_dec != 0:
+        dec_symbol = -1 if float(dec_dms[0]) < 0 else 1
+
+    # transfer the unit of ra/dec from hms/dms to degrees
+    if len_ra == 1:
+        ra_degree = float(ra_hms[0]) * 15
+    elif len_ra == 2:
+        ra_degree = (float(ra_hms[0]) + ra_symbol*float(ra_hms[1])/60) * 15
+    else:
+        ra_degree = (float(ra_hms[0]) + ra_symbol*float(ra_hms[1])/60 + ra_symbol*float(ra_hms[2])/3600) * 15
+
+    if len_dec == 1:
+        dec_degree = float(dec_dms[0])
+    elif len_dec == 2:
+        dec_degree = float(dec_dms[0]) + dec_symbol*float(dec_dms[1])/60
+    else:
+        dec_degree = float(dec_dms[0]) + dec_symbol*float(dec_dms[1])/60 + dec_symbol*float(dec_dms[2])/3600
+
+    return ra_degree, dec_degree
     
 def allowed_file(filename: str):
     return '.' in filename and \
@@ -153,13 +157,13 @@ def check_format(filename: str):
         rows = csv.DictReader(csvfile)
 
         for index, row in enumerate(rows):
-            #name check
+            # name check
             if len(row['Name']) == 0:
                 return "rows "+ str(index+1) + " error : Please enter target name" 
             elif len(row['Name']) > 50 :
                 return "rows "+ str(index+1) + " error : Name is too long"
 
-            #ra check
+            # ra check
             try:
                 ra = float(row['ra'])
                 if  ra < 0 or ra > 360 :
@@ -167,11 +171,11 @@ def check_format(filename: str):
             except ValueError:
                 try :
                     result = PATTERN.match(row['ra'])
-                    #print(result)
+                    # print(result)
                     if result == None: 
                         raise Exception
                     
-                    #print(result.group())
+                    # print(result.group())
                     h,m,s= result.group().split(':',3)
                     
                     h = float(h)
@@ -190,7 +194,7 @@ def check_format(filename: str):
                     return "rows "+ str(index+1) + " error : RA format error"
                 pass
             
-            #dec check
+            # dec check
             try:
                 dec = float(row['dec'])
                 if dec < -90 or dec > 90:
@@ -201,7 +205,7 @@ def check_format(filename: str):
                     if result == None: 
                         raise Exception
                     
-                    #print(result.group())
+                    # print(result.group())
                     d,m,s= result.group().split(':',3)
                     
                     d = float(d)
@@ -220,7 +224,7 @@ def check_format(filename: str):
                     return "rows "+ str(index+1) + " error : Dec format error"
                 pass
             
-            #filter and mode check
+            # filter and mode check
             mode = int(row['Mode'])
             if mode < 0 or mode > 2 :
                 return "rows "+ str(index+1) + " error : Mode format error"      
@@ -253,7 +257,7 @@ def upload_2_DB(filename : str, PID : int, usr: str):
         rows = csv.DictReader(csvfile)
         
         for index,row in rows:
-            #change coordinate unit to degree
+            # change coordinate unit to degree
             try:
                 float(row['ra'])
             except Exception:
@@ -263,7 +267,7 @@ def upload_2_DB(filename : str, PID : int, usr: str):
                 s = float(s)
                 row['ra'] = (h+ m/60+ s/3600) * 15
         
-            #change coordinate unit to degree
+            # change coordinate unit to degree
             try:
                 float(row['dec'])
             except Exception:
@@ -274,11 +278,11 @@ def upload_2_DB(filename : str, PID : int, usr: str):
                 row['dec'] = h+ m/60+ s/3600
 
             print(row['ra'],row['dec'])
-            #query by coordinate to check target exist or not
+            # query by coordinate to check target exist or not
             query = "MATCH(t:target{ra:$ra, dec:$dec}) return t.TID as TID"
             result = graph.run(query,ra = row['ra'],dec=row['dec']).data()
             if not len(result):
-                #if not, create the target node 
+                # if not, create the target node 
                 count = graph.run("MATCH (t:target) return t.TID  order by t.TID DESC limit 1 ").data()
                 target = Target()
                 if len(count) == 0:
@@ -294,11 +298,11 @@ def upload_2_DB(filename : str, PID : int, usr: str):
                 TID = int(result['TID']) 
             time2observe = []
 
-            #TODO
+            # TODO
             if(int(row['Mode']) == 1):
                 row['Mode'] = float(row['Total_cycle__time'])
             
-            #mode = totol_cycle_time
+            # mode = totol_cycle_time
 
 
             for filter in FILTER:
@@ -308,7 +312,7 @@ def upload_2_DB(filename : str, PID : int, usr: str):
                     row[filter] = 'n'
                 time2observe.append(float(row[filter+'_+Time']))
 
-            #create project target relationship
+            # create project target relationship
             query="MATCH (p:project {PID: $PID}) MATCH (t:target {TID:$TID}) create (p)-[pht:PHaveT {phavetid:$phavetid, JohnsonB:$JohnsonB, JohnsonV:$JohnsonV, JohnsonR:$JohnsonR, SDSSu:$SDSSu, SDSSg:$SDSSg, SDSSr:$SDSSr, SDSSi:$SDSSi, SDSSz:$SDSSz, Time_to_Observe:$time2observe, Mode:$mode }]->(t) return pht.phavetid"
             update_project_equipment_observe_list(usr,PID,TID,row['Johnson_B'], row['Johnson_R'], row['Johnson_V'],row['SDSS_u'],row['SDSS_g'],row['SDSS_r'],row['SDSS_i'],row['SDSS_z'])
             count = graph.run("MATCH ()-[pht:PHaveT]->() return pht.phavetid  order by pht.phavetid DESC limit 1 ").data()

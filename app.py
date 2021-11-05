@@ -640,10 +640,15 @@ def addTarget():
     SDSSr = request.json['SDSSr'].strip()
     SDSSi = request.json['SDSSi'].strip()
     SDSSz = request.json['SDSSz'].strip()
+    # TODO time to observe (array)
+    time2observe = []
+    mode = request.json['mode'].strip() # 0: general, 1: cycle
+    # TODO cycle time (array)
+    cycle_time = []
     if "usr" in session:
         usr = session["usr"]
         session["usr"] = usr
-        target  = create_project_target(usr,int(PID),int(TID),JohnsonB, JohnsonR, JohnsonV, SDSSu, SDSSg, SDSSr, SDSSi, SDSSz)
+        target  = create_project_target(usr,int(PID),int(TID),JohnsonB, JohnsonR, JohnsonV, SDSSu, SDSSg, SDSSr, SDSSi, SDSSz, time2observe, mode, cycle_time)
         return jsonify(target = target)
     else:
         return "login"
