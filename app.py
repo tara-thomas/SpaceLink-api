@@ -138,52 +138,6 @@ def dashboard_get():
         session["usr"] = usr
         user_profile = get_profile(usr)
         projects = get_project(usr)
-        # get recommended users from postgresSQL
-        # uid_list1 = recommend_user_by_equipment(str(get_uid(usr)))
-        # random.shuffle(uid_list1)
-        # new_uid_list1 = []
-        # L1 = []
-        # for uid in uid_list1:
-        #     if check_is_friend(usr, uid[0]) == 0:
-        #         new_uid_list1.append(uid)
-        # L1 = get_user_info(new_uid_list1)
-        # L1 = L1[:3]
-
-        # get recommended users from the users share the same interest target
-        # 1. get user interested targets
-        # targets = get_user_interest(usr)
-        # random.shuffle(targets)
-        # 2. get a non-friend user from each target with max 6 users
-        # uid_list2 = []
-        # L2 = []
-        # for t in targets:
-        #     uid = get_a_new_user(usr, int(t['TID']))
-        #     if uid != -1:
-                
-        #         uid_list2.append([uid])
-        #     if len(uid_list2) > 3:
-        #         break
-        # print(uid_list2)
-        # if len(uid_list2) != 0:
-        #     L2 = get_user_info(uid_list2)
-        # if len(L2) > 3:
-        #     L2 = L2[:3]
-        # get recommended users from the users in the same project
-        # filter out the users that already is friend
-        # recommended_user = L1+L2
-        # uid_rest = []
-        # if len(recommended_user) < 6:
-        #     need = 6-len(recommended_user)
-        #     for i in range(need):
-        #         while True:
-        #             uid = random.randint(0, count_user())
-        #             if uid != get_uid(usr):
-        #                 break
-        #         uid_rest.append([uid])
-        # L3 = get_user_info(uid_rest)
-        
-        # recommended_user = L1+L2+L3
-
         return {'user_profile': user_profile, 'projects': projects}
     else:
         return "login"
@@ -206,17 +160,11 @@ def getJoinedProjects():
     if request.headers['user']:
         usr = request.headers['user']
         session["usr"] = usr
-<<<<<<< HEAD
-    user_profile = get_profile(usr)
-    projects = get_project_join(usr)
-    return {'user_profile':user_profile,'projects':projects}
-=======
         user_profile = get_profile(usr)
         projects = get_project_join(usr)
         if(projects == None):
             return "Not joined project yet!"
         return {'user_profile':user_profile,'projects':projects}
->>>>>>> 29fe9a7ce21c2a6da72935dde7de9363a08cc5a1
         #return render_template("accounts/joinedProjects.html", user_profile=user_profile, projects = projects)
     # else:
     #     return "login"
@@ -238,26 +186,13 @@ def manageProject():
 # 1019 for users to rank their joined projects
 @app.route('/accounts/rankedProjects', methods=['GET'])
 def getRankedProjects():
-<<<<<<< HEAD
-    # get user customized ranking frome database
-    if request.headers['user']:
-        usr = request.headers['user']
-=======
 
     EID = int(request.json['EID'])
-    if "usr" in session:
-        usr = session["usr"]
->>>>>>> 29fe9a7ce21c2a6da72935dde7de9363a08cc5a1
-        session["usr"] = usr
-        user_profile = get_profile(usr)
+    usr = request.json["usr"]
               
-        projects = get_equipment_project_priority(usr,EID);
+    projects = get_equipment_project_priority(usr, EID)
             
-        return {'projects':projects}
-        #return render_template("accounts/joinedProjects.html", user_profile=user_profile, projects = projects)
-    else:
-        return "login" 
-        #return redirect(url_for("login_get"))
+    return {'projects':projects}
 
 # 0331 for users to rank their joined projects
 @app.route('/accounts/rankedProjects', methods=['POST'])
@@ -272,11 +207,7 @@ def postRankedProjects():
         
         # only when user click the save button would update the database
         if request.form.get('button') == 'save':
-<<<<<<< HEAD
-            update_equipment_project_priority(usr, pid_list)
-=======
             update_equipment_project_priority(usr,EID,pid_list)
->>>>>>> 29fe9a7ce21c2a6da72935dde7de9363a08cc5a1
 
         if request.form.get('button') == 'reset':
             projects = get_project_join(usr)
@@ -549,12 +480,18 @@ def target_search_get():
 # 0703 change the function to query_from_simbad
 @app.route('/projects/search', methods=['POST'])
 def target_search_post():
-    text = request.json['search'].strip()
+    if 'search' in request.json:
+        text = request.json['search'].strip()
+        target = query_simbad_byName(text)
+    else:
+        coord = request.json['searchCoord'].strip()
+        rad = request.json['rad'].strip()
+        target = query_simbad_byCoord(coord, rad)
+
     # text = '(?i).*'+text+'.*'
     print(text)
     # if request.form.get('button') == 'Search':
     # target = search_target(text)
-    target = query_from_simbad(text)
 
     #return render_template("projects/search_target.html", target = target)
     return jsonify(target = target)

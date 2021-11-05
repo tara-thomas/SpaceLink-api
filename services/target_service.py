@@ -126,17 +126,17 @@ def query_simbad_byName(targetName: str):
         return None
 
 # 1020
-def query_simbad_byCoord(targetCoord: str, radius: float):
+def query_simbad_byCoord(targetCoord: str, radius: str):
     limitedSimbad = Simbad()
     limitedSimbad.ROW_LIMIT = 5
 
     # ra and dec in degree
-    if coord.find(":") == -1:
+    if targetCoord.find(":") == -1:
         ra_degree, dec_degree = targetCoord.split(" ")
         ra_degree = float(ra_degree)
         dec_degree = float(dec_degree)
 
-    result_table = limitedSimbad.query_region(coord.SkyCoord(ra_degree, dec_degree,unit=(u.deg, u.deg), frame='fk5'), radius=0.1 * u.deg)
+    result_table = limitedSimbad.query_region(coord.SkyCoord(ra_degree, dec_degree,unit=(u.deg, u.deg), frame='fk5'), radius= float(radius)* u.deg)
     tar_list = []
     for tar in result_table:
         tar_list.append({'name': tar[0], 'ra': [1], 'dec': [2]})

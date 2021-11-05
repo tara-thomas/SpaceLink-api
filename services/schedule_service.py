@@ -133,11 +133,6 @@ def generate_default_schedule(usr: str, uhaveid: int):
     print(len(schedule_target))
     # print("\nSCHEDULE TARGET:\n", schedule_target)
     default_schedule, target_datetime = get_observable_time(uhaveid, pid, schedule_target)
-<<<<<<< HEAD
-    print(default_schedule)
-
-    return [default_schedule, target_datetime]
-=======
 
     schedule = {}
     schedule["default_schedule"] = default_schedule
@@ -147,7 +142,6 @@ def generate_default_schedule(usr: str, uhaveid: int):
     save_schedule(uid,eid,schedule)
 
     #return [default_schedule, target_datetime]
->>>>>>> 29fe9a7ce21c2a6da72935dde7de9363a08cc5a1
 
 # 0331 sort targets' priority
 def sort_project_target(project_target):
