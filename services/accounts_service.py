@@ -214,7 +214,7 @@ def create_equipments(aperture:float,Fov:float,pixel_scale:float,tracking_accura
     equipment.SDSSr = SDSSr
     equipment.SDSSi = SDSSi
     equipment.SDSSz = SDSSz
-    equipment.project_priority = None
+    equipment.project_priority = []
     graph.create(equipment)
     
     return equipment
@@ -242,14 +242,15 @@ def get_eid(uhaveid):
     return eid
 
 
-def update_equipment_project_priority(usr: str, eid : int, new_priority: list):
-    query = "MATCH (x:user{usr:$usr})-[h:UhaveE]->(e:equipments{eid:$eid}) set e.equipment_priority = $new_priority"
-    result = graph.run(query,usr = usr,eid = eid, new_priority = new_priority)
+def update_equipment_project_priority(usr: str, eid : int, project_priority: list):
+    print(project_priority)
+    query = "MATCH x = (e:equipments{EID:$eid}) set e.project_priority = $project_priority"
+    result = graph.run(query, eid = eid, project_priority = project_priority)
 
 def get_equipment_project_priority(usr:str,eid : int):
-    query = "MATCH (x:user{usr:$usr})-[h:UhaveE]->(e:equipments{eid:$eid}) return e.equipment_priority as priority"
+    query = "MATCH (x:user{email:$usr})-[h:UhaveE]->(e:equipments{EID:$eid}) return e.project_priority as priority"
     result = graph.run(query,usr = usr,eid = eid).data()
-    print("Result: ", result)
+    print(eid, " Result: ", result)
     if(len(result) == 0 ): 
         return None
     else :

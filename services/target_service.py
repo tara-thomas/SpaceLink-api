@@ -89,11 +89,7 @@ def query_simbad_byName(targetName: str):
         return None
 
 # 1020
-<<<<<<< HEAD
-def query_simbad_byCoord(targetCoord: str, radius: str):
-=======
 def query_simbad_byCoord(targetCoord: str, rad: float, unit: str):
->>>>>>> 98f677f3cb45cb081210f535e5b5023c52b5b62c
     limitedSimbad = Simbad()
     limitedSimbad.ROW_LIMIT = 5
     # setup unit
@@ -117,7 +113,8 @@ def query_simbad_byCoord(targetCoord: str, rad: float, unit: str):
     result_table = limitedSimbad.query_region(coord.SkyCoord(ra_degree, dec_degree,unit=(u.deg, u.deg), frame='icrs'), radius=rad * unit)
     tar_list = []
     for tar in result_table:
-        tar_list.append({'name': tar[0], 'ra': [1], 'dec': [2]})
+        ra, dec = hms2degree(tar[1].split(" "), tar[2].split(" "))
+        tar_list.append({'name': tar[0], 'ra': ra, 'dec': dec})
 
     return tar_list
 

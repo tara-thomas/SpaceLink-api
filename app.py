@@ -188,7 +188,7 @@ def manageProject():
 def getRankedProjects():
 
     EID = int(request.json['EID'])
-    usr = request.json["usr"]
+    usr = request.headers['user']
               
     projects = get_equipment_project_priority(usr, EID)
             
@@ -199,24 +199,26 @@ def getRankedProjects():
 def postRankedProjects():
 
     EID = int(request.json['EID'])
-    pid_list = request.json['list']
-    if "usr" in session:
-        usr = session["usr"]
-        session["usr"] = usr
-        user_profile = get_profile(usr)
+    usr = request.headers['user']
+    user_profile = get_profile(usr)
         
-        # only when user click the save button would update the database
-        if request.form.get('button') == 'save':
-            update_equipment_project_priority(usr,EID,pid_list)
+    # only when user click the save button would update the database
+    if request.json['method'] == 'save':
+        pid_list = request.json['list']
+        update_equipment_project_priority(usr,EID,pid_list)
+        projects = get_equipment_project_priority(usr, EID)                
+        return {'projects':projects}
 
-        if request.form.get('button') == 'reset':
-            projects = get_project_join(usr)
-            projects = get_project_default_priority(projects)
+    if request.json['method'] == 'reset':
+        projects = get_project_join(usr)
+        projects = get_project_default_priority(projects)
+        return {'projects':projects}
 
-        return "success"
-        #return render_template("accounts/joinedProjects.html", user_profile=user_profile, projects = projects)
-    else:
-        return "login" 
+    if request.json['method'] == 'get':                
+        projects = get_equipment_project_priority(usr, EID)                
+        return {'projects':projects}
+
+    return "login" 
         #return redirect(url_for("login_get"))
 
 #created for ajax to get target for projects on dashboard
@@ -486,15 +488,16 @@ def target_search_post():
     else:
         coord = request.json['searchCoord'].strip()
         rad = request.json['rad'].strip()
-        target = query_simbad_byCoord(coord, rad)
+        unit = request.json['unit'].strip()
+
+        target = query_simbad_byCoord(coord, float(rad), unit)
 
     # text = '(?i).*'+text+'.*'
-    print(text)
     # if request.form.get('button') == 'Search':
     # target = search_target(text)
 
     #return render_template("projects/search_target.html", target = target)
-    return jsonify(target = target)
+    return {'target': target}
 
 @app.route('/projects/targetDetails', methods=['POST'])
 def target_getDetails():
@@ -643,12 +646,10 @@ def addTarget():
     # TODO time to observe (array)
     time2observe = []
     mode = request.json['mode'].strip() # 0: general, 1: cycle
-    # TODO cycle time (array)
-    cycle_time = []
     if "usr" in session:
         usr = session["usr"]
         session["usr"] = usr
-        target  = create_project_target(usr,int(PID),int(TID),JohnsonB, JohnsonR, JohnsonV, SDSSu, SDSSg, SDSSr, SDSSi, SDSSz, time2observe, mode, cycle_time)
+        target  = create_project_target(usr,int(PID),int(TID),JohnsonB, JohnsonR, JohnsonV, SDSSu, SDSSg, SDSSr, SDSSi, SDSSz, time2observe, mode)
         return jsonify(target = target)
     else:
         return "login"

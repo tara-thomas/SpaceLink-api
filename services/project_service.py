@@ -266,15 +266,15 @@ def user_manage_projects_get(usr: str):
     return project
 
 #add a new target for project
-def create_project_target(usr: str, PID: int, TID: int, JohnsonB: str, JohnsonR: str, JohnsonV: str,SDSSu: str,SDSSg: str,SDSSr: str,SDSSi: str,SDSSz: str, time2observe: list, mode: int, cycle_time: list):
-    query="MATCH (p:project {PID: $PID}) MATCH (t:target {TID:$TID}) create (p)-[pht:PHaveT {phavetid:$phavetid, JohnsonB:$JohnsonB, JohnsonV:$JohnsonV, JohnsonR:$JohnsonR, SDSSu:$SDSSu, SDSSg:$SDSSg, SDSSr:$SDSSr, SDSSi:$SDSSi, SDSSz:$SDSSz, Time_to_Observe:$time2observe, Mode:$mode, Cycle_Time:$cycle_time}]->(t) return pht.phavetid"
+def create_project_target(usr: str, PID: int, TID: int, JohnsonB: str, JohnsonR: str, JohnsonV: str,SDSSu: str,SDSSg: str,SDSSr: str,SDSSi: str,SDSSz: str, time2observe: list, mode: int):
+    query="MATCH (p:project {PID: $PID}) MATCH (t:target {TID:$TID}) create (p)-[pht:PHaveT {phavetid:$phavetid, JohnsonB:$JohnsonB, JohnsonV:$JohnsonV, JohnsonR:$JohnsonR, SDSSu:$SDSSu, SDSSg:$SDSSg, SDSSr:$SDSSr, SDSSi:$SDSSi, SDSSz:$SDSSz, Time_to_Observe:$time2observe, Mode:$mode}]->(t) return pht.phavetid"
     update_project_equipment_observe_list(usr, PID, TID, JohnsonB, JohnsonR, JohnsonV, SDSSu, SDSSg, SDSSr, SDSSi, SDSSz)
     count = graph.run("MATCH ()-[pht:PHaveT]->() return pht.phavetid  order by pht.phavetid DESC limit 1 ").data()
     if len(count) == 0:
         cnt = 0
     else:
         cnt = count[0]['pht.phavetid']+1
-    result = graph.run(query, PID = PID, TID = TID, phavetid = cnt, JohnsonB = JohnsonB, JohnsonR = JohnsonR, JohnsonV = JohnsonV, SDSSg = SDSSg, SDSSi = SDSSi, SDSSr = SDSSr, SDSSu = SDSSu, SDSSz = SDSSz, Time_to_Observe = time2observe, Mode = mode, Cycle_Time = cycle_time).data()
+    result = graph.run(query, PID = PID, TID = TID, phavetid = cnt, JohnsonB = JohnsonB, JohnsonR = JohnsonR, JohnsonV = JohnsonV, SDSSg = SDSSg, SDSSi = SDSSi, SDSSr = SDSSr, SDSSu = SDSSu, SDSSz = SDSSz, Time_to_Observe = time2observe, Mode = mode).data()
     return result
 
 #
@@ -320,8 +320,8 @@ def auto_join(usr: str, PID: int):
     #check if already joined the project 
     query = "MATCH (x:user {email:$usr})-[r]->(p:project{PID:$PID})  return exists((x)-[:Member_of]->(p))"
     exist = graph.run(query,usr = usr, PID = PID).data()
-    print(exist[0])
-    if(exist[0]):
+    #print(exist[0])
+    if(exist):
         print("exist")
         return
 
@@ -349,11 +349,13 @@ def auto_join(usr: str, PID: int):
         
         #add the project to the last in the prioritty list
         old_priority = get_equipment_project_priority(usr,int(qualified_eid_list[i]['EID']))
-        print(old_priority)
+        print("priority", old_priority)
         if(old_priority == None):
-            list = []
-            list.append(PID)
-            update_equipment_project_priority(usr,int(qualified_eid_list[i]['EID']), list)
+            pidlist = []
+            pidlist.append(PID)
+            print("eid", qualified_eid_list[i]['EID'])
+            print("append ",pidlist)
+            update_equipment_project_priority(usr,int(qualified_eid_list[i]['EID']), pidlist)
         else:
             old_priority.append(PID)
             update_equipment_project_priority(usr,int(qualified_eid_list[i]['EID']), old_priority)
