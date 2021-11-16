@@ -163,20 +163,21 @@ def get_eid(uhaveid):
 
 # 0505 get the time need to observe of each target in projects
 def get_time2observe(pid, tid):
-    query = "MATCH (p:project{PID:$pid})-[r:PHaveT]->(t:target{TID:$tid}) RETURN r.Time_to_Observe as T2O, r.Mode as mode"
+    query = "MATCH (p:project{PID:$pid})-[r:PHaveT]->(t:target{TID:$tid}) RETURN r.Time_to_Observe as T2O, r.Mode as mode, r.Cycle_Time as cycle_time"
     result = graph.run(query, pid=pid, tid=tid).data()
 
     t2o = result[0]['T2O']
     t2o = [1000, 1000, 1080, 0, 300, 0, 0, 1500]
     mode = result[0]['mode']
     mode = 0
+    cycle_time = result[0]['cycle_time']
+    cycle_time = [-1, -1, -1, -1, -1, -1, -1, -1]
 
-    return t2o, mode
+    return t2o, mode, cycle_time
 
 # 0421 + 0505 + 0512
 def get_observable_time(uhaveid: int, pid: int, sorted_target: list):
     current_time = datetime.now()
-    base_time = datetime.strptime(str(current_time).split(' ')[0]+' 12:00', '%Y-%m-%d %H:%M')
     observability = []
     target_datetime = []
     tid_list = []
@@ -184,11 +185,12 @@ def get_observable_time(uhaveid: int, pid: int, sorted_target: list):
     schedule_filled = [-1]*1440
 
     # get information from uhavee and equipment table
-    query_relation = "MATCH (x:user)-[h:UhaveE{uhaveid:$uhaveid}]->(e:equipments) return h.longitude as longitude, h.latitude as latitude, h.altitude as altitude, e.elevation_lim as elevation_lim"
+    query_relation = "MATCH (x:user)-[h:UhaveE{uhaveid:$uhaveid}]->(e:equipments) return h.longitude as longitude, h.latitude as latitude, h.altitude as altitude, h.time_zone as time_zone, e.elevation_lim as elevation_lim"
     eq_info = graph.run(query_relation, uhaveid=uhaveid).data()
     longitude = float(eq_info[0]['longitude'])
     latitude = float(eq_info[0]['latitude'])
     altitude = float(eq_info[0]['altitude'])
+    time_zone = int(eq_info[0]['time_zone'].split("C")[1])
     elevation_lim = float(eq_info[0]['elevation_lim'])
 
     # 0512
@@ -196,6 +198,11 @@ def get_observable_time(uhaveid: int, pid: int, sorted_target: list):
     hint_msgs = {}
     # /0512
 
+    # 1020 convert basetime from local to UTC time
+    base_time = datetime.strptime(str(current_time).split(' ')[0]+' 12:00', '%Y-%m-%d %H:%M')
+    base_time -= timedelta(hours=time_zone)
+    utc2local = False
+    # /1020
     for tar in sorted_target:
         tid = int(tar['TID'])
         ra = float(tar['lon'])
@@ -228,6 +235,13 @@ def get_observable_time(uhaveid: int, pid: int, sorted_target: list):
         if str(t_start) != 'nan' and str(t_end) != 'nan':
             t_start = datetime.strptime(str(t_start)[:16], '%Y-%m-%dT%H:%M')
             t_end = datetime.strptime(str(t_end)[:16], '%Y-%m-%dT%H:%M')
+            # 1020 convert back to LOCAL time
+            t_start += timedelta(hours=time_zone)
+            t_end += timedelta(hours=time_zone)
+            if not utc2local:
+                base_time += timedelta(hours=time_zone)
+                utc2local = True
+            # /1020
 
             tid_list.append(tid)
 

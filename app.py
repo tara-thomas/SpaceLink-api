@@ -9,11 +9,15 @@ from services.friend_service import *
 from services.target_service import *
 #from services.postgres_service import *
 from services.log_service import *
-import os
+import os, uuid, pathlib
 import random
 
+ALLOWED_EXTENSIONS = {'csv', 'tsv'}
+UPLOAD_FOLDER = str(pathlib.Path().resolve())
 app = Flask(__name__) #create application
 app.secret_key = os.urandom(24) 
+app.config['MAX_CONTENT_LENGTH'] = 32 * 1024 * 1024
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 CORS(app)
 
 graph = db_auth() #connect to neo4j
@@ -132,52 +136,6 @@ def dashboard_get():
         session["usr"] = usr
         user_profile = get_profile(usr)
         projects = get_project(usr)
-        # get recommended users from postgresSQL
-        # uid_list1 = recommend_user_by_equipment(str(get_uid(usr)))
-        # random.shuffle(uid_list1)
-        # new_uid_list1 = []
-        # L1 = []
-        # for uid in uid_list1:
-        #     if check_is_friend(usr, uid[0]) == 0:
-        #         new_uid_list1.append(uid)
-        # L1 = get_user_info(new_uid_list1)
-        # L1 = L1[:3]
-
-        # get recommended users from the users share the same interest target
-        # 1. get user interested targets
-        # targets = get_user_interest(usr)
-        # random.shuffle(targets)
-        # 2. get a non-friend user from each target with max 6 users
-        # uid_list2 = []
-        # L2 = []
-        # for t in targets:
-        #     uid = get_a_new_user(usr, int(t['TID']))
-        #     if uid != -1:
-                
-        #         uid_list2.append([uid])
-        #     if len(uid_list2) > 3:
-        #         break
-        # print(uid_list2)
-        # if len(uid_list2) != 0:
-        #     L2 = get_user_info(uid_list2)
-        # if len(L2) > 3:
-        #     L2 = L2[:3]
-        # get recommended users from the users in the same project
-        # filter out the users that already is friend
-        # recommended_user = L1+L2
-        # uid_rest = []
-        # if len(recommended_user) < 6:
-        #     need = 6-len(recommended_user)
-        #     for i in range(need):
-        #         while True:
-        #             uid = random.randint(0, count_user())
-        #             if uid != get_uid(usr):
-        #                 break
-        #         uid_rest.append([uid])
-        # L3 = get_user_info(uid_rest)
-        
-        # recommended_user = L1+L2+L3
-
         return {'user_profile': user_profile, 'projects': projects}
     else:
         return "login"
@@ -197,12 +155,14 @@ def joinProject():
 
 @app.route('/accounts/joinedProjects', methods=['GET'])
 def getJoinedProjects():
-    # if request.headers['user']:
-    #     usr = request.headers['user']
-    #     session["usr"] = usr
-    user_profile = get_profile("Ohputlm@Observatory229.com")
-    projects = get_project_join("Ohputlm@Observatory229.com")
-    return {'user_profile':user_profile,'projects':projects}
+    if request.headers['user']:
+        usr = request.headers['user']
+        session["usr"] = usr
+        user_profile = get_profile(usr)
+        projects = get_project_join(usr)
+        if(projects == None):
+            return "Not joined project yet!"
+        return {'user_profile':user_profile,'projects':projects}
         #return render_template("accounts/joinedProjects.html", user_profile=user_profile, projects = projects)
     # else:
     #     return "login"
@@ -210,57 +170,53 @@ def getJoinedProjects():
 
 @app.route('/accounts/manageprojects', methods=['GET'])
 def manageProject():
-    if "usr" in session:
-        usr = session["usr"]
+    if request.headers['user']:
+        usr = request.headers['user']
         session["usr"] = usr
-        user_profile = get_profile(usr)
         projects = user_manage_projects_get(usr)
-        return {'user_profile':user_profile, 'projects':projects}
+        print(projects)
+        return {'projects': projects}
         #return render_template("accounts/manageprojects.html", user_profile=user_profile, projects = projects)
     else:
         return "login"
         #return redirect(url_for("login_get"))
 
-# 0331 show the ranking of users' joined projects
+# 1019 for users to rank their joined projects
 @app.route('/accounts/rankedProjects', methods=['GET'])
 def getRankedProjects():
-    # get user customized ranking frome database
-    if "usr" in session:
-        usr = session["usr"]
-        session["usr"] = usr
-        user_profile = get_profile(usr)
-        projects = get_project_orderby_priority(usr)
-        return {'user_profile':user_profile, 'projects':projects}
-        #return render_template("accounts/joinedProjects.html", user_profile=user_profile, projects = projects)
-    else:
-        return "login"
-        #return redirect(url_for("login_get"))
+
+    EID = int(request.json['EID'])
+    usr = request.headers['user']
+              
+    projects = get_equipment_project_priority(usr, EID)
+            
+    return {'projects':projects}
 
 # 0331 for users to rank their joined projects
 @app.route('/accounts/rankedProjects', methods=['POST'])
 def postRankedProjects():
-    # get user customized ranking
-    ''' TODO '''
-    pid_list = []
-    # expected a PID list
 
-    if "usr" in session:
-        usr = session["usr"]
-        session["usr"] = usr
-        user_profile = get_profile(usr)
+    EID = int(request.json['EID'])
+    usr = request.headers['user']
+    user_profile = get_profile(usr)
         
-        # only when user click the save button would update the database
-        if request.form.get('button') == 'save':
-            upadte_project_priority(usr, pid_list)
+    # only when user click the save button would update the database
+    if request.json['method'] == 'save':
+        pid_list = request.json['list']
+        update_equipment_project_priority(usr,EID,pid_list)
+        projects = get_equipment_project_priority(usr, EID)                
+        return {'projects':projects}
 
-        if request.form.get('button') == 'reset':
-            projects = get_project_join(usr)
-            projects = get_project_default_priority(projects)
+    if request.json['method'] == 'reset':
+        projects = get_project_join(usr)
+        projects = get_project_default_priority(projects)
+        return {'projects':projects}
 
-        return {'user_profile':user_profile, 'projects':projects}
-        #return render_template("accounts/joinedProjects.html", user_profile=user_profile, projects = projects)
-    else:
-        return "login" 
+    if request.json['method'] == 'get':                
+        projects = get_equipment_project_priority(usr, EID)                
+        return {'projects':projects}
+
+    return "login" 
         #return redirect(url_for("login_get"))
 
 #created for ajax to get target for projects on dashboard
@@ -533,15 +489,22 @@ def target_search_get():
 # 0703 change the function to query_from_simbad
 @app.route('/projects/search', methods=['POST'])
 def target_search_post():
-    text = request.json['search'].strip()
+    if 'search' in request.json:
+        text = request.json['search'].strip()
+        target = query_simbad_byName(text)
+    else:
+        coord = request.json['searchCoord'].strip()
+        rad = request.json['rad'].strip()
+        unit = request.json['unit'].strip()
+
+        target = query_simbad_byCoord(coord, float(rad), unit)
+
     # text = '(?i).*'+text+'.*'
-    print(text)
     # if request.form.get('button') == 'Search':
     # target = search_target(text)
-    target = query_from_simbad(text)
 
     #return render_template("projects/search_target.html", target = target)
-    return jsonify(target = target)
+    return {'target': target}
 
 @app.route('/projects/targetDetails', methods=['POST'])
 def target_getDetails():
@@ -661,6 +624,20 @@ def project_create_post():
     else:
         return "login"
         # return redirect(url_for("login_get"))
+
+@app.route('/projects/createTarget', methods=['POST'])
+def createTarget():
+    targetName = request.json['name'].strip()
+    ra = request.json['ra'].strip()
+    dec = request.json['dec'].strip()
+    if "usr" in session:
+        usr = session["usr"]
+        session["usr"] = usr
+        msg = create_target(targetName, ra, dec)
+        return msg
+    else:
+        return "login"
+
 @app.route('/projects/addTarget', methods=['POST'])
 def addTarget():
     PID = request.json['PID'].strip()
@@ -673,10 +650,13 @@ def addTarget():
     SDSSr = request.json['SDSSr'].strip()
     SDSSi = request.json['SDSSi'].strip()
     SDSSz = request.json['SDSSz'].strip()
+    # TODO time to observe (array)
+    time2observe = []
+    mode = request.json['mode'].strip() # 0: general, 1: cycle
     if "usr" in session:
         usr = session["usr"]
         session["usr"] = usr
-        target  = create_project_target(usr,int(PID),int(TID),JohnsonB, JohnsonR, JohnsonV, SDSSu, SDSSg, SDSSr, SDSSi, SDSSz)
+        target  = create_project_target(usr,int(PID),int(TID),JohnsonB, JohnsonR, JohnsonV, SDSSu, SDSSg, SDSSr, SDSSi, SDSSz, time2observe, mode)
         return jsonify(target = target)
     else:
         return "login"
@@ -694,6 +674,51 @@ def addTarget():
 #             return render_template("projects/project_target.html", project_target = project_target)
 #     else:
 #         return redirect(url_for("login_get"))
+
+
+@app.route('/project/upload_target_from_file', methods=['POST'])
+def upload_file():
+    usr = session["usr"]
+    session["usr"] = usr
+    PID = request.json['PID'].strip()
+    if request.method == 'POST':
+        # check if the post request has the file part
+        if 'file' not in request.files:
+            flash('No file part')
+            print("file not found")
+            return "Upload failed"
+        file = request.files['file']
+        # If the user does not select a file, the browser submits an
+        # empty file without a filename.
+        if file.filename == '':
+            flash('No selected file')
+            return "Upload failed"
+        if file and allowed_file(file.filename):
+            #certe random and secure name forthe upload file 
+            filename = secure_filename(file.filename) + '_' +str(uuid.uuid4())
+            print(filename)
+
+            #if the directory not exist, then create one 
+            path = os.path.join(app.config['UPLOAD_FOLDER'],"upload_tmp")
+            pathlib.Path(path).mkdir(parents=True,exist_ok=True)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'],"upload_tmp",filename)
+            file.save(filepath)
+            
+            #check the file format 
+            check_format_result = check_format(filepath);
+            if( check_format_result != "Success"):
+                os.remove(filepath)
+                return check_format_result
+            #upload file to DB
+            if(upload_2_DB(filepath,PID,usr)): 
+                os.remove(filepath)
+                return "Upload success"
+            else:
+                os.remove(filepath)
+                return "Upload failed"
+
+        else :
+            print("Not supported file")
 
 
 @app.route('/accounts/logout')

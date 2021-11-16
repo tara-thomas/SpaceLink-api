@@ -151,11 +151,6 @@ def get_project_orderby_priority(usr):
 
     return ori_project_priority
 
-# 0331 update the priority of users' projects
-def upadte_project_priority(usr, pid_list):
-    query = "MATCH (x:user {email:$usr}) set x.project_priority=$project_priority"
-    graph.run(query, usr=usr, project_priority=pid_list)
-
 #get a project observe target
 def get_project_target(pid: int):
     # consider to delete the targets that have reached the goal of observe time
@@ -271,15 +266,15 @@ def user_manage_projects_get(usr: str):
     return project
 
 #add a new target for project
-def create_project_target(usr: str, PID: int, TID: int, JohnsonB: str, JohnsonR: str, JohnsonV: str,SDSSu: str,SDSSg: str,SDSSr: str,SDSSi: str,SDSSz: str, time2observe: dict):
-    query="MATCH (p:project {PID: $PID}) MATCH (t:target {TID:$TID}) create (p)-[pht:PHaveT {phavetid:$phavetid, JohnsonB:$JohnsonB, JohnsonV:$JohnsonV, JohnsonR:$JohnsonR, SDSSu:$SDSSu, SDSSg:$SDSSg, SDSSr:$SDSSr, SDSSi:$SDSSi, SDSSz:$SDSSz, Time_to_Observe:$time2observe}]->(t) return pht.phavetid"
-    update_project_equipment_observe_list(usr,PID,TID,JohnsonB, JohnsonR, JohnsonV,SDSSu,SDSSg,SDSSr,SDSSi,SDSSz)
+def create_project_target(usr: str, PID: int, TID: int, JohnsonB: str, JohnsonR: str, JohnsonV: str,SDSSu: str,SDSSg: str,SDSSr: str,SDSSi: str,SDSSz: str, time2observe: list, mode: int):
+    query="MATCH (p:project {PID: $PID}) MATCH (t:target {TID:$TID}) create (p)-[pht:PHaveT {phavetid:$phavetid, JohnsonB:$JohnsonB, JohnsonV:$JohnsonV, JohnsonR:$JohnsonR, SDSSu:$SDSSu, SDSSg:$SDSSg, SDSSr:$SDSSr, SDSSi:$SDSSi, SDSSz:$SDSSz, Time_to_Observe:$time2observe, Mode:$mode}]->(t) return pht.phavetid"
+    update_project_equipment_observe_list(usr, PID, TID, JohnsonB, JohnsonR, JohnsonV, SDSSu, SDSSg, SDSSr, SDSSi, SDSSz)
     count = graph.run("MATCH ()-[pht:PHaveT]->() return pht.phavetid  order by pht.phavetid DESC limit 1 ").data()
     if len(count) == 0:
         cnt = 0
     else:
         cnt = count[0]['pht.phavetid']+1
-    result = graph.run(query, PID = PID, TID = TID, phavetid = cnt, JohnsonB = JohnsonB, JohnsonR = JohnsonR, JohnsonV = JohnsonV, SDSSg = SDSSg, SDSSi = SDSSi, SDSSr = SDSSr, SDSSu = SDSSu, SDSSz = SDSSz, Time_to_Observe= time2observe).data()
+    result = graph.run(query, PID = PID, TID = TID, phavetid = cnt, JohnsonB = JohnsonB, JohnsonR = JohnsonR, JohnsonV = JohnsonV, SDSSg = SDSSg, SDSSi = SDSSi, SDSSr = SDSSr, SDSSu = SDSSu, SDSSz = SDSSz, Time_to_Observe = time2observe, Mode = mode).data()
     return result
 
 #
@@ -325,8 +320,8 @@ def auto_join(usr: str, PID: int):
     #check if already joined the project 
     query = "MATCH (x:user {email:$usr})-[r]->(p:project{PID:$PID})  return exists((x)-[:Member_of]->(p))"
     exist = graph.run(query,usr = usr, PID = PID).data()
-    print(exist[0])
-    if(exist[0]):
+    #print(exist[0])
+    if(exist):
         print("exist")
         return
 
@@ -354,11 +349,13 @@ def auto_join(usr: str, PID: int):
         
         #add the project to the last in the prioritty list
         old_priority = get_equipment_project_priority(usr,int(qualified_eid_list[i]['EID']))
-        print(old_priority)
+        print("priority", old_priority)
         if(old_priority == None):
-            list = []
-            list.append(PID)
-            update_equipment_project_priority(usr,int(qualified_eid_list[i]['EID']), list)
+            pidlist = []
+            pidlist.append(PID)
+            print("eid", qualified_eid_list[i]['EID'])
+            print("append ",pidlist)
+            update_equipment_project_priority(usr,int(qualified_eid_list[i]['EID']), pidlist)
         else:
             old_priority.append(PID)
             update_equipment_project_priority(usr,int(qualified_eid_list[i]['EID']), old_priority)
@@ -481,6 +478,8 @@ def get_project_join(usr: str):
         "p.mount_type as mount_type, p.camera_type1 as camera_type1, p.camera_type2 as camera_type2, p.JohnsonB as JohnsonB, p.JohnsonR as JohnsonR, p.JohnsonV as JohnsonV, p.SDSSu as SDSSu," \
         "p.SDSSg as SDSSg, p.SDSSr as SDSSr, p.SDSSi as SDSSi, p.SDSSz as SDSSz, p.PID as PID order by PID"
     join_list = graph.run(query, usr = usr).data()
+    if  len(join_list) == 0 : 
+        return None
     return  join_list
 
 #return the project based on user's equipment 
@@ -565,32 +564,32 @@ def fliter_project_target(usr: str, PID: int):
 
     return target
 
-#Update a equipment target list when add new target to project
+# Update a equipment target list when add new target to project
 def update_project_equipment_observe_list(usr: str, PID: int, TID: int, JohnsonB: str, JohnsonR: str, JohnsonV: str,SDSSu: str,SDSSg: str,SDSSr: str,SDSSi: str,SDSSz: str):
 
     target_lat = graph.run("MATCH(t:target{TID:$TID}) return t.latitude as lat", TID = TID).data()
     
     eq_list = get_project_equipment(PID)
-    if count(eq_list) == 0:
+    if len(eq_list) == 0:
         return 0
     else :
         for i in range(len(eq_list)):
             if eq_list[i]['JohnsonB'] == 'n':
-                if project_target[j]['JohnsonB'] == 'y': continue
+                if JohnsonB == 'y': continue
             if eq_list[i]['JohnsonV'] == 'n':
-                if project_target[j]['JohnsonV'] == 'y': continue
+                if JohnsonV == 'y': continue
             if eq_list[i]['JohnsonR'] == 'n':
-                if project_target[j]['JohnsonR'] == 'y': continue
+                if JohnsonR == 'y': continue
             if eq_list[i]['SDSSu'] == 'n':
-                if project_target[j]['SDSSu'] == 'y': continue
+                if SDSSu == 'y': continue
             if eq_list[i]['SDSSg'] == 'n':
-                if project_target[j]['SDSSg'] == 'y': continue
+                if SDSSg == 'y': continue
             if eq_list[i]['SDSSr'] == 'n':
-                if project_target[j]['SDSSr'] == 'y': continue
+                if SDSSr == 'y': continue
             if eq_list[i]['SDSsi'] == 'n':
-                if project_target[j]['SDSSi'] == 'y': continue
+                if SDSSi == 'y': continue
             if eq_list[i]['SDSSz'] == 'n':
-                if project_target[j]['SDSSz'] == 'y': continue
+                if SDSSz == 'y': continue
 
             # filter with equipment declination limit
             if float(eq_list[i]['declination']) <= 0 and float( target_lat[0]['lat']) < float(eq_list[i]['declination']):
@@ -604,7 +603,7 @@ def update_project_equipment_observe_list(usr: str, PID: int, TID: int, JohnsonB
             query = "MATCH (p:project {PID: $PID})-[rel:PHaveE]->(e:equipment{EID:$EID}) set rel.target_list={target_list:$target_list} "
             graph.run(query, PID = PID, EID = eq_list[i]['eid'], target_list = target_list)
 
-#initial a equipment target list when create project_equipment relationship
+# initial a equipment target list when create project_equipment relationship
 def initial_equipment_target_list(usr: str, EID: int, PID: int):
             
     project_target = graph.run("MATCH (p:project {PID: $PID})-[pht:PHaveT]->(t:target) " \
