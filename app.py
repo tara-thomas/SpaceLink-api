@@ -7,7 +7,7 @@ from services.project_service import *
 from services.schedule_service import *
 from services.friend_service import *
 from services.target_service import *
-from services.postgres_service import *
+#from services.postgres_service import *
 from services.log_service import *
 import os
 import random
@@ -24,11 +24,9 @@ graph = db_auth() #connect to neo4j
 def ind():
     return "It's working man"
 
-'''
-@app.route('/accounts/register', methods=['GET'])
-def register_get():
-    return render_template("accounts/register.html")
-'''
+@app.route('/test/test', methods=['GET'])
+def test():
+    return "It's a test"
 
 @app.route('/accounts/register', methods=['POST'])
 def register_post():
@@ -463,23 +461,33 @@ def equipments_post():
     SDSSr = request.json['SDSSr'].strip()
     SDSSi = request.json['SDSSi'].strip()
     SDSSz = request.json['SDSSz'].strip()
-    if "usr" in session:
-        usr = session["usr"]
+    # if "usr" in session:
+    if request.headers["user"]:
+        # usr = session["usr"]
+        print("request.headers['user']:", request.headers["user"])
+        usr = request.headers['user']
         session["usr"] = usr
         '''TODO'''
-        if request.form.get('button') == 'update':            
+        print("button!!!!!!!!!!", request.json['button'])
+        
+
+        if request.json['button'] == 'update':            
             hid = request.json['uhaveid'].strip() 
             print(hid)
             user_equipments = update_user_equipments(aperture,Fov,pixel_scale,tracking_accuracy,lim_magnitude,elevation_lim,mount_type,camera_type1,
             camera_type2,JohnsonB,JohnsonR,JohnsonV,SDSSu,SDSSg,SDSSr,SDSSi,SDSSz,
             usr,Site,Longitude,Latitude,Altitude,tz,daylight,wv,light_pollution,int(hid))
-        if request.form.get('button') == 'add':
-            equipments = create_equipments(aperture,Fov,pixel_scale,tracking_accuracy,lim_magnitude,elevation_lim,mount_type,camera_type1,camera_type2,JohnsonB,JohnsonR,JohnsonV,SDSSu,SDSSg,SDSSr,SDSSi,SDSSz)
-            print(equipments.EID)
-            user_equipments = create_user_equipments(usr,equipments.EID,Site,Longitude,Latitude,Altitude,tz,daylight,wv,light_pollution)
+        if request.json['button'] == 'create' :
+            try:
+                equipments = create_equipments(aperture,Fov,pixel_scale,tracking_accuracy,lim_magnitude,elevation_lim,mount_type,camera_type1,camera_type2,JohnsonB,JohnsonR,JohnsonV,SDSSu,SDSSg,SDSSr,SDSSi,SDSSz)
+                print(equipments.EID)
+                user_equipments = create_user_equipments(usr,equipments.EID,Site,Longitude,Latitude,Altitude,tz,daylight,wv,light_pollution)
+            except Exception as e:
+                printf("error!!!! :", e)
+                return e
             # create spatial user equipment
             # postgres_create_user_equipments(int(user_equipments.id),get_uid(usr), equipments.EID,Longitude,Latitude,Altitude)
-        if request.form.get('button') == 'delete':            
+        if request.json['button'] == 'delete':            
             hid = request.json['uhaveid'].strip() 
             delete_user_equipment(usr,int(hid))
             # delete user's equipment in postgresSQL
@@ -697,4 +705,4 @@ def logout():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0',port=5000)
