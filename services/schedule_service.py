@@ -364,7 +364,7 @@ def query_schedule(UID:int,EID:int,date:str):
     #print(jsonify(result["schedule"]))
     return result["schedule"]["default_schedule"],result["schedule"]["target_schedule"]
 
-def daily():
+def daily_calculate_schedule():
     #query all user 
     query = "MATCH (n:user) order by  n.UID DSEC return n.email as usr"
     users = graph.run(query).data()
@@ -375,5 +375,6 @@ def daily():
         for j in range(len(equipments)):
             generate_default_schedule(users[i]['usr'],equipments[j]['uhaveid'])
 
-
-
+#TODO
+#def time_decution():
+    

@@ -241,6 +241,13 @@ def get_eid(uhaveid):
 
     return eid
 
+#get the equipment id
+def get_uhavid_all(usr: str):
+    query_eid = "MATCH (x:user{email:$email})-[h:UhaveE]->(e:equipments) return h.uhaveid as uhaveid"
+    list = graph.run(query_eid, email = usr).data()
+
+    return list[0]['uhaveid']
+
 
 def update_equipment_project_priority(usr: str, eid : int, project_priority: list):
     print(project_priority)

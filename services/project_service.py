@@ -3,13 +3,15 @@ from typing import Optional
 from passlib.handlers.sha2_crypt import sha512_crypt as crypto
 from services.classes import User, Target, Equipments, Project, Schedule
 from datetime import datetime, timedelta
-from services.accounts_service import get_equipment_project_priority, update_equipment_project_priority
+from services.accounts_service import get_equipment_project_priority, update_equipment_project_priority, get_uhavid_all
+from services.schedule_service import generate_default_schedule
 
 import astro.declination_limit_of_location as declination
 import astro.astroplan_calculations as schedule
 import astro.nighttime_calculations as night
 import ephem
 import random
+import threading
 
 graph = db_auth()
 
@@ -359,6 +361,15 @@ def auto_join(usr: str, PID: int):
         else:
             old_priority.append(PID)
             update_equipment_project_priority(usr,int(qualified_eid_list[i]['EID']), old_priority)
+        
+        #generate initial schedule in background
+        uhaveeid_list = get_uhavid_all(usr)
+        threads = []
+        query = "MATCH"
+        for i in range(len(get_uhavid_all)): #TODO need to deal with load balance 
+            threads.append(threading.Thread(target = generate_default_schedule, args = (usr,uhaveeid_list[i])))
+            threads[i].start()
+    
 
 
 #this function is uesd to test, the user will auto leave the project
