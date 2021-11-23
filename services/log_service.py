@@ -9,11 +9,12 @@ db = client["SpaceLink"]
 observe_log = db['Observe_Log']
 schedule_col = db['Schedule']
 
+
 def upload_log(log:dict):
     observe_log.insert(log)
     for i in log["log"]:
-        query1 = "match x=(p:project{PID:$pid})-[r:PHaveT]->(t:target{TID:$tid}) set r.Time_to_Observe={ramain:$remain} return r.Time_to_Observe" #update new time_to_observe
-        query2 = "match x=(p:project{PID:$pid})-[r:PHaveT]->(t:target{TID:$tid}) return r.Time_to_Observe"  #query old time_to_observe
+        query1 = "match x=(p:project{PID:$pid})-[r:PHaveT]->(t:target{TID:$tid}) set r.Remain_Time_to_Observe={ramain:$remain} return r.Remain_Time_to_Observe" #update new time_to_observe
+        query2 = "match x=(p:project{PID:$pid})-[r:PHaveT]->(t:target{TID:$tid}) return r.Remain_Time_to_Observe as T2O"  #query old time_to_observe
         dateformat = '%Y-%m-%d %H:%M:%S.%f'
         start = datetime.strptime(i['start_time'],dateformat)
         end = datetime.strptime(i['end_time'],dateformat)

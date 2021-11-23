@@ -309,8 +309,10 @@ def upload_2_DB(filename : str, PID : int, usr: str):
                     row[filter] = 'n'
                 time2observe.append(float(row[filter+'_+Time']))
 
+
             # create project target relationship
-            query="MATCH (p:project {PID: $PID}) MATCH (t:target {TID:$TID}) create (p)-[pht:PHaveT {phavetid:$phavetid, JohnsonB:$JohnsonB, JohnsonV:$JohnsonV, JohnsonR:$JohnsonR, SDSSu:$SDSSu, SDSSg:$SDSSg, SDSSr:$SDSSr, SDSSi:$SDSSi, SDSSz:$SDSSz, Time_to_Observe:$time2observe, Mode:$mode }]->(t) return pht.phavetid"
+            query="MATCH (p:project {PID: $PID}) MATCH (t:target {TID:$TID}) create (p)-[pht:PHaveT {phavetid:$phavetid, JohnsonB:$JohnsonB, JohnsonV:$JohnsonV, JohnsonR:$JohnsonR, SDSSu:$SDSSu, "\
+                "SDSSg:$SDSSg, SDSSr:$SDSSr, SDSSi:$SDSSi, SDSSz:$SDSSz, Time_to_Observe:$time2observe,Remain_Time_to_Observe:$time2observe, Mode:$mode }]->(t) return pht.phavetid"
             update_project_equipment_observe_list(usr,PID,TID,row['Johnson_B'], row['Johnson_R'], row['Johnson_V'],row['SDSS_u'],row['SDSS_g'],row['SDSS_r'],row['SDSS_i'],row['SDSS_z'])
             count = graph.run("MATCH ()-[pht:PHaveT]->() return pht.phavetid  order by pht.phavetid DESC limit 1 ").data()
             if len(count) == 0:
@@ -318,6 +320,35 @@ def upload_2_DB(filename : str, PID : int, usr: str):
             else:
                 cnt = count[0]['pht.phavetid']+1
                 result = graph.run(query, PID = PID, TID = TID, phavetid = cnt, JohnsonB = row['Johnson_B'], JohnsonR = row['Johnson_R'], JohnsonV = row['Johnson_B'] \
-                    , SDSSg = row['SDSS_g'], SDSSi = row['SDSS_i'], SDSSr = row['SDSS_r'], SDSSu = row['SDSS_u'], SDSSz = row['SDSS_z'], Time_to_Observe= time2observe, mode=row['Mode']).data()
+                    , SDSSg = row['SDSS_g'], SDSSi = row['SDSS_i'], SDSSr = row['SDSS_r'], SDSSu = row['SDSS_u'], SDSSz = row['SDSS_z'], time2observe= time2observe, mode=row['Mode']).data()
 
     return 1
+
+
+def time_deduction(PID: int, TID: int, time_record: list):
+    
+    remain = get_remain_time_to_observe(PID,TID)
+    for i in time_record:
+        remain[i] = remain[i] - time_record[i];
+
+    set_remain_time_to_observe(PID,TID)
+
+    return remain
+
+def set_remain_time_to_observe(PID: int, TID: int, remain: list):
+    query = "match x=(p:project{PID:$pid})-[r:PHaveT]->(t:target{TID:$tid}) set r.Remain_Time_to_Observe={ramain:$remain} return r.Remain_Time_to_Observe as remain" #update new time_to_observe
+    result = graph.run(query, pid = PID, tid = TID).data()
+    print(result[0]['remain'])
+    return
+
+def get_remain_time_to_observe(PID: int, TID: int):
+    
+    query = "match x=(p:project{PID:$pid})-[r:PHaveT]->(t:target{TID:$tid}) return r.Remain_Time_to_Observe as Remain"  #query old time_to_observe
+    time = graph.run(query, pid = PID, tid = TID).data()
+    return time[0]['Remain']
+
+def get_time_to_observe(PID: int, TID: int):
+    
+    query = "match x=(p:project{PID:$pid})-[r:PHaveT]->(t:target{TID:$tid}) return r.Time_to_Observe as Time"  #query origin time_to_observe
+    time = graph.run(query, pid = PID, tid = TID).data()
+    return time[0]['Time']
