@@ -188,7 +188,8 @@ def getRankedProjects():
     EID = int(request.json['EID'])
     usr = request.headers['user']
               
-    projects = get_equipment_project_priority(usr, EID)
+    pid_list = get_equipment_project_priority(usr, EID)
+    projects = get_project_info(pid_list); 
             
     return {'projects':projects}
 
@@ -423,10 +424,7 @@ def equipments_post():
         print("request.headers['user']:", request.headers["user"])
         usr = request.headers['user']
         session["usr"] = usr
-        '''TODO'''
-        print("button!!!!!!!!!!", request.json['button'])
         
-
         if request.json['button'] == 'update':            
             hid = request.json['uhaveid'].strip() 
             print(hid)

@@ -13,6 +13,14 @@ import random
 
 graph = db_auth()
 
+def get_project_info(pid_list : list):
+
+    project = []
+    for i in range(len(pid_list)):
+        info = get_project_detail(pid_list[i])
+        project.append(info)
+    
+    return project
 # get a project's information
 def get_project_detail(PID: int):
     #get the project's detail
