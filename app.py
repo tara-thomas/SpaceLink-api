@@ -276,7 +276,7 @@ def addFriend():
         return jsonify(success = "success")
     else:
         return "login"
-        #return redirect(url_for("login_get"))
+        #return redirect(url_for("login_get"))git
 
 @app.route('/getPMInfo', methods=['POST'])
 def getPMInfo():
@@ -586,12 +586,12 @@ def project_create_post():
     title = request.json['title'].strip()
     project_type = request.json['project_type'].strip()
     description = request.json['description'].strip()
-    aperture_upper_limit = request.json['aperture_upper_limit'].strip()
-    aperture_lower_limit = request.json['aperture_lower_limit'].strip()
-    FoV_upper_limit = request.json['FoV_upper_limit'].strip()
-    FoV_lower_limit = request.json['FoV_lower_limit'].strip()
-    pixel_scale_upper_limit = request.json['pixel_scale_upper_limit'].strip()
-    pixel_scale_lower_limit = request.json['pixel_scale_lower_limit'].strip()
+    aperture_upper_limit = request.json['aperture_upper_limit']
+    aperture_lower_limit = request.json['aperture_lower_limit']
+    FoV_upper_limit = request.json['FoV_upper_limit']
+    FoV_lower_limit = request.json['FoV_lower_limit']
+    pixel_scale_upper_limit = request.json['pixel_scale_upper_limit']
+    pixel_scale_lower_limit = request.json['pixel_scale_lower_limit']
     mount_type = request.json['mount_type'].strip()
     camera_type1 = request.json['camera_type1'].strip()
     camera_type2 = request.json['camera_type2'].strip()

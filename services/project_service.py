@@ -4,7 +4,7 @@ from passlib.handlers.sha2_crypt import sha512_crypt as crypto
 from services.classes import User, Target, Equipments, Project, Schedule
 from datetime import datetime, timedelta
 from services.accounts_service import get_equipment_project_priority, update_equipment_project_priority, get_uhavid_all
-from services.schedule_service import generate_default_schedule
+#from services.schedule_service import generate_default_schedule
 
 import astro.declination_limit_of_location as declination
 import astro.astroplan_calculations as schedule
@@ -20,7 +20,7 @@ def get_project_info(pid_list : list):
     project = []
     for i in range(len(pid_list)):
         info = get_project_detail(pid_list[i])
-        project.append(info)
+        project.append(info[0])
     
     return project
 # get a project's information
