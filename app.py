@@ -190,7 +190,8 @@ def getRankedProjects():
     EID = int(request.json['EID'])
     usr = request.headers['user']
               
-    projects = get_equipment_project_priority(usr, EID)
+    pid_list = get_equipment_project_priority(usr, EID)
+    projects = get_project_info(pid_list); 
             
     return {'projects':projects}
 
@@ -215,7 +216,8 @@ def postRankedProjects():
         return {'projects':projects}
 
     if request.json['method'] == 'get':                
-        projects = get_equipment_project_priority(usr, EID)                
+        pid_list = get_equipment_project_priority(usr, EID)
+        projects = get_project_info(pid_list); 
         return {'projects':projects}
 
     return "login" 
@@ -581,12 +583,12 @@ def project_create_post():
     title = request.json['title'].strip()
     project_type = request.json['project_type'].strip()
     description = request.json['description'].strip()
-    aperture_upper_limit = request.json['aperture_upper_limit'].strip()
-    aperture_lower_limit = request.json['aperture_lower_limit'].strip()
-    FoV_upper_limit = request.json['FoV_upper_limit'].strip()
-    FoV_lower_limit = request.json['FoV_lower_limit'].strip()
-    pixel_scale_upper_limit = request.json['pixel_scale_upper_limit'].strip()
-    pixel_scale_lower_limit = request.json['pixel_scale_lower_limit'].strip()
+    aperture_upper_limit = request.json['aperture_upper_limit']
+    aperture_lower_limit = request.json['aperture_lower_limit']
+    FoV_upper_limit = request.json['FoV_upper_limit']
+    FoV_lower_limit = request.json['FoV_lower_limit']
+    pixel_scale_upper_limit = request.json['pixel_scale_upper_limit']
+    pixel_scale_lower_limit = request.json['pixel_scale_lower_limit']
     mount_type = request.json['mount_type'].strip()
     camera_type1 = request.json['camera_type1'].strip()
     camera_type2 = request.json['camera_type2'].strip()
@@ -600,8 +602,8 @@ def project_create_post():
     SDSSz = request.json['SDSSz'].strip()
     # PID = request.form.get('PID').strip()
     # PI = request.form.get('PI').strip()
-    if "usr" in session:
-        usr = session["usr"]
+    if request.headers['user']:
+        usr = request.headers['user']
         session["usr"] = usr
         #if request.form.get('button') == 'Create':
         print('create project')
