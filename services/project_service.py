@@ -371,12 +371,12 @@ def auto_join(usr: str, PID: int):
             update_equipment_project_priority(usr,int(qualified_eid_list[i]['EID']), old_priority)
         
         #generate initial schedule in background
-        uhaveeid_list = get_uhavid_all(usr)
-        threads = []
-        query = "MATCH"
-        for i in range(len(get_uhavid_all)): #TODO need to deal with load balance 
-            threads.append(threading.Thread(target = generate_default_schedule, args = (usr,uhaveeid_list[i])))
-            threads[i].start()
+        #uhaveeid_list = get_uhavid_all(usr)
+        #threads = []
+        #query = "MATCH"
+        #for i in range(len(get_uhavid_all)): #TODO need to deal with load balance 
+        #    threads.append(threading.Thread(target = generate_default_schedule, args = (usr,uhaveeid_list[i])))
+        #    threads[i].start()
     
 
 
