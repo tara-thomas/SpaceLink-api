@@ -21,8 +21,10 @@ def get_project_info(pid_list : list):
     for i in range(len(pid_list)):
         info = get_project_detail(pid_list[i])
         project.append(info[0])
-    
+
     return project
+
+
 # get a project's information
 def get_project_detail(PID: int):
     #get the project's detail

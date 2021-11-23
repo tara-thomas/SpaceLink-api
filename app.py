@@ -214,7 +214,8 @@ def postRankedProjects():
         return {'projects':projects}
 
     if request.json['method'] == 'get':                
-        projects = get_equipment_project_priority(usr, EID)                
+        pid_list = get_equipment_project_priority(usr, EID)
+        projects = get_project_info(pid_list); 
         return {'projects':projects}
 
     return "login" 
@@ -605,8 +606,8 @@ def project_create_post():
     SDSSz = request.json['SDSSz'].strip()
     # PID = request.form.get('PID').strip()
     # PI = request.form.get('PI').strip()
-    if "usr" in session:
-        usr = session["usr"]
+    if request.headers['user']:
+        usr = request.headers['user']
         session["usr"] = usr
         #if request.form.get('button') == 'Create':
         print('create project')
