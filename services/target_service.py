@@ -46,7 +46,8 @@ def search_target(text: str):
 
 # 1020 create target if it doesn't exist
 def create_target(targetName: str, ra: float, dec: float):
-    if(not get_targetDetails(targetName)):
+    targetDetail = get_targetDetails(targetName)
+    if not targetDetail:
         # create the target
         count = graph.run("MATCH (t:target) return t.TID  order by t.TID DESC limit 1 ").data()
         
@@ -60,9 +61,9 @@ def create_target(targetName: str, ra: float, dec: float):
         target.latitude = dec
         graph.create(target)            
 
-        return "New target created!"
+        return "New target created!", target.TID
     else:
-        return "Target already exists."
+        return "Target already exists.", targetDetail[0]['TID']
 
 # add target in Simbad to target table (1020 modify)
 def query_simbad_byName(targetName: str):

@@ -205,7 +205,8 @@ def postRankedProjects():
     if request.json['method'] == 'save':
         pid_list = request.json['list']
         update_equipment_project_priority(usr,EID,pid_list)
-        projects = get_equipment_project_priority(usr, EID)                
+        pid_list = get_equipment_project_priority(usr, EID)    
+        projects = get_project_info(pid_list);             
         return {'projects':projects}
 
     if request.json['method'] == 'reset':
@@ -236,15 +237,14 @@ def getTargetInfo():
 
 @app.route('/getTargetForProjectInfo', methods=['POST'])
 def getTargetForProjectInfo():
-    if "usr" in session:
-        usr = session["usr"]
+    if request.headers['user']:
+        usr = request.headers['user']
         session["usr"] = usr
         hid = request.json['PID'].strip()
         project_target = get_project_target(int(hid))
         return jsonify(project_targets = project_target)
     else:
         return "login"
-        #return redirect(url_for("login_get"))
 
 
 @app.route('/getJoinedEquipmentInfo', methods=['POST'])
@@ -627,20 +627,20 @@ def project_create_post():
 @app.route('/projects/createTarget', methods=['POST'])
 def createTarget():
     targetName = request.json['name'].strip()
-    ra = request.json['ra'].strip()
-    dec = request.json['dec'].strip()
-    if "usr" in session:
-        usr = session["usr"]
+    ra = request.json['ra']
+    dec = request.json['dec']
+    if request.headers['user']:
+        usr = request.headers['user']
         session["usr"] = usr
-        msg = create_target(targetName, ra, dec)
-        return msg
+        msg, tid = create_target(targetName, ra, dec)
+        return jsonify(tid=tid)
     else:
         return "login"
 
 @app.route('/projects/addTarget', methods=['POST'])
 def addTarget():
-    PID = request.json['PID'].strip()
-    TID = request.json['TID'].strip()
+    PID = request.json['PID']
+    TID = request.json['TID']
     JohnsonB = request.json['JohnsonB'].strip()
     JohnsonV = request.json['JohnsonV'].strip()
     JohnsonR = request.json['JohnsonR'].strip()
@@ -649,17 +649,24 @@ def addTarget():
     SDSSr = request.json['SDSSr'].strip()
     SDSSi = request.json['SDSSi'].strip()
     SDSSz = request.json['SDSSz'].strip()
+    JohnsonBMin = request.json['JohnsonBMin'].strip()
+    JohnsonVMin = request.json['JohnsonVMin'].strip()
+    JohnsonRMin = request.json['JohnsonRMin'].strip()
+    SDSSuMin = request.json['SDSSuMin'].strip()
+    SDSSgMin = request.json['SDSSgMin'].strip()
+    SDSSrMin = request.json['SDSSrMin'].strip()
+    SDSSiMin = request.json['SDSSiMin'].strip()
+    SDSSzMin = request.json['SDSSzMin'].strip()
     # TODO time to observe (array)
-    time2observe = []
-    mode = request.json['mode'].strip() # 0: general, 1: cycle
-    if "usr" in session:
-        usr = session["usr"]
+    time2observe = [JohnsonBMin, JohnsonRMin, JohnsonVMin, SDSSuMin, SDSSgMin, SDSSrMin, SDSSiMin, SDSSzMin]
+    mode = request.json['mode'] # 0: general, 1: cycle
+    if request.headers['user']:
+        usr = request.headers['user']
         session["usr"] = usr
-        target  = create_project_target(usr,int(PID),int(TID),JohnsonB, JohnsonR, JohnsonV, SDSSu, SDSSg, SDSSr, SDSSi, SDSSz, time2observe, mode)
+        target  = create_project_target(usr,int(PID),int(TID),JohnsonB, JohnsonR, JohnsonV, SDSSu, SDSSg, SDSSr, SDSSi, SDSSz, time2observe, int(mode))
         return jsonify(target = target)
     else:
         return "login"
-        # return redirect(url_for("login_get"))
 
 # @app.route('/projects/project', methods=['POST'])
 # def project_post():
