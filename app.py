@@ -410,14 +410,14 @@ def equipments_get():
 def equipments_post():
     # equipment specs
     telName = request.json['telName'].strip()
-    focalLength = request.json['focalLength'].strip()
-    diameter = request.json['diameter'].strip()
+    focalLength = request.json['focalLength']
+    diameter = request.json['diameter']
 
     # camera specs
     camName = request.json['camName'].strip()
-    pixelSize = request.json['pixelSize'].strip()
-    sensorW = request.json['sensorW'].strip()
-    sensorH = request.json['sensorH'].strip()
+    pixelSize = request.json['pixelSize']
+    sensorW = request.json['sensorW']
+    sensorH = request.json['sensorH']
     camera_type1  = request.json['camera_type1'].strip()
     camera_type2 = request.json['camera_type2'].strip()
 
@@ -447,11 +447,11 @@ def equipments_post():
     # mount
     mountName = request.json['mountName'].strip()
     mount_type = request.json['mount_type'].strip()
-    deg = request.json['deg'].strip()
+    deg = request.json['deg']
 
     # barlow / focal reducer
     barlowName = request.json['barlowName'].strip()
-    magnification = request.json['magnification'].strip()
+    magnification = request.json['magnification']
 
     # calculated specs (need to save focalRatio, fovDeg, and resolution)
     focalRatio = focalLength * magnification / diameter
@@ -463,11 +463,11 @@ def equipments_post():
 
     # user-equipment parameter
     site = request.json['site'].strip()
-    longitude = request.json['longitude'].strip()
-    latitude = request.json['latitude'].strip()
-    altitude = request.json['altitude'].strip()
-    tz = request.json['time_zone'].strip()
-    sq = request.json['sky_quality'].strip()
+    longitude = request.json['longitude']
+    latitude = request.json['latitude']
+    altitude = request.json['altitude']
+    tz = request.json['time_zone']
+    sq = request.json['sky_quality']
 
     usr = request.headers['user']
     print(usr)
@@ -475,7 +475,7 @@ def equipments_post():
     if "usr" in session:
         usr = session["usr"]
         session["usr"] = usr
-        # if request.form.get('button') == 'update':            
+        # if request.json.get('method') == 'update':            
         #     hid = request.json['uhaveid'].strip() 
         #     print(hid)
         #     user_equipments = update_user_equipments(telName, focalLength, diameter, camName, pixelSize, sensorW, sensorH, camera_type1, camera_type2, filterArray,
