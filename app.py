@@ -642,9 +642,9 @@ def project_create_post():
     resolution_upper_limit = request.json['resolution_upper_limit']
 
     # required camera type
-    colored = request.json['colored']
-    mono = request.json['mono']
-    required_camera_type = [colored, mono]
+    colored = request.json['camera_type1']
+    # mono = request.json['mono']
+    # required_camera_type = [colored, mono]
 
     # required filters
     lFilter = request.json['lFilter']
@@ -676,7 +676,7 @@ def project_create_post():
         session["usr"] = usr
         #if request.form.get('button') == 'Create':
         print('create project')
-        projects = create_project(usr, project_type, title, description, FoV_lower_limit, resolution_upper_limit, required_camera_type, required_filter)
+        projects = create_project(usr, project_type, title, description, FoV_lower_limit, resolution_upper_limit, colored, required_filter)
         # if request.form.get('button') == 'Update':
         #     umanageid = request.form.get('umanageid').strip()
         #     projects = upadte_project(usr,int(PID),int(umanageid),title,project_type,description,aperture_upper_limit,aperture_lower_limit,FoV_upper_limit,FoV_lower_limit,pixel_scale_upper_limit,pixel_scale_lower_limit,mount_type,camera_type1,camera_type2,JohnsonB,JohnsonR,JohnsonV,SDSSu,SDSSg,SDSSr,SDSSi,SDSSz)
@@ -748,7 +748,6 @@ def addTarget():
     SDSSrHr = request.json['SDSSrHr']
     SDSSiHr = request.json['SDSSiHr']
     SDSSzHr = request.json['SDSSzHr']
-    # TODO time to observe (array), the Min is actually HOURS!!!
     time2observe = [lFilterHr, rFilterHr, gFilterHr, bFilterHr, haFilterHr, oiiiFilterHr, siiFilterHr, duoFilterHr, multispectraFilterHr, JohnsonUHr, JohnsonBHr, JohnsonVHr, JohnsonRHr, JohnsonIHr, SDSSuHr, SDSSgHr, SDSSrHr, SDSSiHr, SDSSzHr]
     mode = request.json['mode'] # 0: general, 1: cycle
     if request.headers['user']:

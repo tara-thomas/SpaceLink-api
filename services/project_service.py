@@ -59,8 +59,8 @@ def get_project(usr: str)->Optional[Project]:
             if any(pid == project[j]['PID'] for pid in pid_list): continue
             if equipment[i]['fovDeg'] < project[j]['FoV_lower_limit']: continue
             if equipment[i]['resolution'] > project[j]['resolution_upper_limit']: continue
-            equipment_camera_type = 0 if equipment[i]['camera_type1'] == 'colored' else 1
-            if not project[j]['required_camera_type'][equipment_camera_type]: continue
+            # equipment_camera_type = 0 if equipment[i]['camera_type1'] == 'colored' else 1
+            if project[j]['required_camera_type'] != equipment[i]['camera_type1']: continue
             # if no filter is required
             if sum(project[j]['required_filter']) == 0:
                 n = graph.run("MATCH (x:user{email: $usr}) return x.name as manager_name",usr = usr).data()
@@ -180,7 +180,9 @@ def create_project(usr, project_type, title, description, FoV_lower_limit, resol
     project.FoV_lower_limit = FoV_lower_limit
     project.resolution_upper_limit = resolution_upper_limit
     project.required_camera_type = required_camera_type
-    project.required_filter = required_filter
+    # project.required_filter = required_filter
+    print(required_camera_type)
+    print(required_filter)
     graph.create(project)
 
     query= "MATCH (x:user {email: $usr}) MATCH (p:project {PID: $PID}) create (x)-[m:Manage {umanageid:$umanageid}]->(p)"
@@ -263,8 +265,8 @@ def get_qualified_equipment(usr: str, PID: int):
     for i in range(len(equipment)):
         if equipment[i]['fovDeg'] < project['FoV_lower_limit']: continue
         if equipment[i]['resolution'] > project['resolution_upper_limit']: continue
-        equipment_camera_type = 0 if equipment[i]['camera_type1'] == 'colored' else 1
-        if not project['required_camera_type'][equipment_camera_type]: continue
+        # equipment_camera_type = 0 if equipment[i]['camera_type1'] == 'colored' else 1
+        if project['required_camera_type'] != equipment[i]['camera_type1']: continue
         # if no filter is required
         if sum(project['required_filter']) == 0:
             qualified_eid_list.append({'EID': int(equipment[i]['EID']), 'telName': equipment[i]['telName']})
