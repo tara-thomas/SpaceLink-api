@@ -238,7 +238,7 @@ def postRankedProjects():
     return "login" 
         #return redirect(url_for("login_get"))
 
-#created for ajax to get target for projects on dashboard
+# created for ajax to get target for projects on dashboard
 @app.route('/getTargetInfo', methods=['POST'])
 def getTargetInfo():
     if request.headers['user']:
@@ -443,6 +443,7 @@ def equipments_post():
     SDSSz = request.json['SDSSz']
     filterArray = [lFilter, rFilter, gFilter, bFilter, haFilter, oiiiFilter, siiFilter, duoFilter, multispectraFilter,
                     JohnsonU, JohnsonB, JohnsonV, JohnsonR, JohnsonI, SDSSu, SDSSg, SDSSr, SDSSi, SDSSz]
+    filterArray = [0 if f == False else f for f in filterArray]
 
     # mount
     mountName = request.json['mountName'].strip()
@@ -475,26 +476,24 @@ def equipments_post():
     if "usr" in session:
         usr = session["usr"]
         session["usr"] = usr
-        # if request.json.get('method') == 'update':            
-        #     hid = request.json['uhaveid'].strip() 
-        #     print(hid)
-        #     user_equipments = update_user_equipments(telName, focalLength, diameter, camName, pixelSize, sensorW, sensorH, camera_type1, camera_type2, filterArray,
-        #                                             mountName, mount_type, deg, barlowName, magnification, usr, hid, site, longitude, latitude, altitude, tz, sq)
-        # equipments = create_equipments(telName, focalLength, diameter,
-        #                             camName, pixelSize, sensorW, sensorH, camera_type1, camera_type2,
-        #                             lFilter, rFilter, gFilter, bFilter, haFilter, oiiiFilter, siiFilter, duoFilter, multispectraFilter,
-        #                             JohnsonU, JohnsonB, JohnsonV, JohnsonR, JohnsonI, SDSSu, SDSSg, SDSSr, SDSSi, SDSSz,
-        #                             mountName, mount_type, deg, barlowName, magnification,
-        #                             focalRatio, fovDeg, resolution)
-        equipments = create_equipments(telName, focalLength, diameter, camName, pixelSize, sensorW, sensorH, camera_type1, camera_type2, filterArray,
-                                    mountName, mount_type, deg, barlowName, magnification, focalRatio, fovDeg, resolution)
-        print(equipments.EID)
-        user_equipments = create_user_equipments(usr, equipments.EID, site, longitude, latitude, altitude, tz, sq)
+        # edit the equipment
+        if request.json.get('method') == 'edit':            
+            hid = request.json['uhaveid'].strip() 
+            print(hid)
+            user_equipments = update_user_equipments(telName, focalLength, diameter, camName, pixelSize, sensorW, sensorH, camera_type1, camera_type2, filterArray,
+                                                    mountName, mount_type, deg, barlowName, magnification, usr, hid, site, longitude, latitude, altitude, tz, sq)
+        # create an equipment
+        if request.json.get('method') == 'save':
+            equipments = create_equipments(telName, focalLength, diameter, camName, pixelSize, sensorW, sensorH, camera_type1, camera_type2, filterArray,
+                                        mountName, mount_type, deg, barlowName, magnification, focalRatio, fovDeg, resolution)
+            print(equipments.EID)
+            user_equipments = create_user_equipments(usr, equipments.EID, site, longitude, latitude, altitude, tz, sq)
             # create spatial user equipment
             # postgres_create_user_equipments(int(user_equipments.id),get_uid(usr), equipments.EID,Longitude,Latitude,Altitude)
-        # if request.form.get('button') == 'delete':            
-        #     hid = request.json['uhaveid'].strip() 
-        #     delete_user_equipment(usr,int(hid))
+        # delete the equipment
+        if request.form.get('button') == 'delete':            
+            hid = request.json['uhaveid'].strip() 
+            delete_user_equipment(usr,int(hid))
         #     # delete user's equipment in postgresSQL
         #     postgres_delete_user_equipments(int(hid))
         user_equipments = get_user_equipments(usr)
@@ -668,6 +667,7 @@ def project_create_post():
     SDSSz = request.json['SDSSz']
     required_filter = [lFilter, rFilter, gFilter, bFilter, haFilter, oiiiFilter, siiFilter, duoFilter, multispectraFilter,
                     JohnsonU, JohnsonB, JohnsonV, JohnsonR, JohnsonI, SDSSu, SDSSg, SDSSr, SDSSi, SDSSz]
+    required_filter = [0 if f == False else f for f in required_filter]
 
     # PID = request.form.get('PID').strip()
     # PI = request.form.get('PI').strip()
@@ -727,27 +727,28 @@ def addTarget():
     SDSSi = request.json['SDSSi']
     SDSSz = request.json['SDSSz']
     filter2observe = [lFilter, rFilter, gFilter, bFilter, haFilter, oiiiFilter, siiFilter, duoFilter, multispectraFilter, JohnsonU, JohnsonB, JohnsonV, JohnsonR, JohnsonI, SDSSu, SDSSg, SDSSr, SDSSi, SDSSz]
+    filter2observe = [0 if f == False else f for f in filter2observe]
 
     # observe time
-    lFilterHr = request.json['lFilterHr']
-    rFilterHr = request.json['rFilterHr']
-    gFilterHr = request.json['gFilterHr']
-    bFilterHr = request.json['bFilterHr']
-    haFilterHr = request.json['haFilterHr']
-    oiiiFilterHr = request.json['oiiiFilterHr']
-    siiFilterHr = request.json['siiFilterHr']
-    duoFilterHr = request.json['duoFilterHr']
-    multispectraFilterHr = request.json['multispectraFilterHr']
-    JohnsonUHr = request.json['JohnsonUHr']
-    JohnsonBHr = request.json['JohnsonBHr']
-    JohnsonVHr = request.json['JohnsonVHr']
-    JohnsonRHr = request.json['JohnsonRHr']
-    JohnsonIHr = request.json['JohnsonIHr']
-    SDSSuHr = request.json['SDSSuHr']
-    SDSSgHr = request.json['SDSSgHr']
-    SDSSrHr = request.json['SDSSrHr']
-    SDSSiHr = request.json['SDSSiHr']
-    SDSSzHr = request.json['SDSSzHr']
+    lFilterHr = int(request.json['lMin']) if lFilter else 0
+    rFilterHr = int(request.json['rMin']) if rFilter else 0
+    gFilterHr = int(request.json['gMin']) if gFilter else 0
+    bFilterHr = int(request.json['bMin']) if bFilter else 0
+    haFilterHr = int(request.json['haMin']) if haFilter else 0
+    oiiiFilterHr = int(request.json['oiiiMin']) if oiiiFilter else 0
+    siiFilterHr = int(request.json['siiMin']) if siiFilter else 0
+    duoFilterHr = int(request.json['duoMin']) if duoFilter else 0
+    multispectraFilterHr = int(request.json['multispectraMin']) if multispectraFilter else 0
+    JohnsonUHr = int(request.json['JohnsonUMin']) if JohnsonU else 0
+    JohnsonBHr = int(request.json['JohnsonBMin']) if JohnsonB else 0
+    JohnsonVHr = int(request.json['JohnsonVMin']) if JohnsonV else 0
+    JohnsonRHr = int(request.json['JohnsonRMin']) if JohnsonR else 0
+    JohnsonIHr = int(request.json['JohnsonIMin']) if JohnsonI else 0
+    SDSSuHr = int(request.json['SDSSuMin']) if SDSSu else 0
+    SDSSgHr = int(request.json['SDSSgMin']) if SDSSg else 0
+    SDSSrHr = int(request.json['SDSSrMin']) if SDSSr else 0
+    SDSSiHr = int(request.json['SDSSiMin']) if SDSSi else 0
+    SDSSzHr = int(request.json['SDSSzMin']) if SDSSz else 0
     time2observe = [lFilterHr, rFilterHr, gFilterHr, bFilterHr, haFilterHr, oiiiFilterHr, siiFilterHr, duoFilterHr, multispectraFilterHr, JohnsonUHr, JohnsonBHr, JohnsonVHr, JohnsonRHr, JohnsonIHr, SDSSuHr, SDSSgHr, SDSSrHr, SDSSiHr, SDSSzHr]
     mode = request.json['mode'] # 0: general, 1: cycle
     if request.headers['user']:
