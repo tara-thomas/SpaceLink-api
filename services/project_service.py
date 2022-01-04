@@ -289,7 +289,7 @@ def create_project_target(usr: str, PID: int, TID: int, filter2observe: list, ti
 
 # 1221 get project / project target progress (percentage)
 def get_progress_percentage(PID: int):
-    query = "MATCH (p:project {PID:$PID})-[r:PHaveT]->(t:target) return r.Time_to_Observe as t2o, r.Remain_to_Observe as r2o, t.TID as TID"
+    query = "MATCH (p:project {PID:$PID})-[r:PHaveT]->(t:target) return r.Time_to_Observe as t2o, r.Remain_to_Observe as r2o, t.TID as TID, t.name as name, t.latitude as lat, t.longitude as lon"
     target_progress = graph.run(query, PID=PID).data()
 
     # calculate entire project progress
@@ -303,7 +303,7 @@ def get_progress_percentage(PID: int):
         t_percent = (t_t2o-t_r2o) / t_t2o
         project_total_t2o += t_t2o
         project_total_r2o += t_r2o
-        target_progress_percentage.append({'TID': t_TID, 'percentage': t_percent})
+        target_progress_percentage.append({'TID': t_TID, 'name': t['name'], 'lat': t['lat'], 'lon': t['lon'], 'percentage': t_percent})
     
     project_progress_percentage = (project_total_t2o-project_total_r2o) / project_total_t2o
 

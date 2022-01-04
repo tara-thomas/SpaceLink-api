@@ -249,7 +249,7 @@ def getTargetInfo():
         hid = request.json['PID']
         # project_target = fliter_project_target(usr, int(hid))
         project_target = get_project_target(int(hid))
-        return jsonify(project_targets = project_target)
+        return jsonify(project_targets=project_target)
     else:
         return "login"
         # return redirect(url_for("login_get"))
@@ -259,9 +259,9 @@ def getTargetForProjectInfo():
     if request.headers['user']:
         usr = request.headers['user']
         session["usr"] = usr
-        hid = request.json['PID'].strip()
-        project_target = get_project_target(int(hid))
-        return jsonify(project_targets = project_target)
+        hid = request.json['PID']
+        project_percentage, project_target = get_progress_percentage(int(hid))
+        return jsonify(project_percentage=project_percentage, project_targets=project_target)
     else:
         return "login"
 
