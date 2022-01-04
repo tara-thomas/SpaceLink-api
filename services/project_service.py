@@ -14,14 +14,12 @@ import random
 graph = db_auth()
 
 def get_project_info(pid_list : list):
-
     project = []
     for i in range(len(pid_list)):
         info = get_project_detail(pid_list[i])
         project.append(info[0])
 
     return project
-
 
 # get a project's information
 def get_project_detail(PID: int):
@@ -30,6 +28,7 @@ def get_project_detail(PID: int):
     "return n.project_type as project_type, n.title as title, n.PI as PI, n.description as description, n.FoV_lower_limit as FoV_lower_limit" \
     "n.required_camera_type as required_camera_type, n.required_filter as required_filter, n.PID as PID"
     project = graph.run(query, PID = PID).data()
+
     return project
 
 # this function will return project which user can join (equipment based)
@@ -57,8 +56,8 @@ def get_project(usr: str)->Optional[Project]:
         for j in range(len(project)):
             if project[j]['PID'] in result: continue
             if any(pid == project[j]['PID'] for pid in pid_list): continue
-            if equipment[i]['fovDeg'] < project[j]['FoV_lower_limit']: continue
-            if equipment[i]['resolution'] > project[j]['resolution_upper_limit']: continue
+            if float(equipment[i]['fovDeg']) < project[j]['FoV_lower_limit']: continue
+            if float(equipment[i]['resolution']) > project[j]['resolution_upper_limit']: continue
             # equipment_camera_type = 0 if equipment[i]['camera_type1'] == 'colored' else 1
             if project[j]['required_camera_type'] != equipment[i]['camera_type1']: continue
             # if no filter is required
@@ -180,18 +179,17 @@ def create_project(usr, project_type, title, description, FoV_lower_limit, resol
     project.FoV_lower_limit = FoV_lower_limit
     project.resolution_upper_limit = resolution_upper_limit
     project.required_camera_type = required_camera_type
-    # project.required_filter = required_filter
-    print(required_camera_type)
-    print(required_filter)
+    project.required_filter = required_filter
     graph.create(project)
 
     query= "MATCH (x:user {email: $usr}) MATCH (p:project {PID: $PID}) create (x)-[m:Manage {umanageid:$umanageid}]->(p)"
-    count = graph.run("MATCH ()-[m:Manage]->() return m.umanageid  order by m.umanageid DESC limit 1 ").data()
+    count = graph.run("MATCH ()-[m:Manage]->() return m.umanageid  order by m.umanageid DESC limit 1").data()
     if len(count) == 0:
         cnt = 0
     else:
         cnt = count[0]['m.umanageid']+1
     graph.run(query, usr = usr, PID = project.PID,umanageid = cnt)
+
     return project
 
 # update a project's information
@@ -207,6 +205,7 @@ def upadte_project(usr: str, PID: int, umanageid: int, project_type: str, title:
              f"m.FoV_lower_limit='{FoV_lower_limit}', m.resolution_upper_limit='{resolution_upper_limit}'," \
              f"m.required_camera_type='{required_camera_type}', m.required_filter='{required_filter}'"  
     project = graph.run(query,usr = usr, umanageid = umanageid)
+
     return project   
 
 # delete a project
@@ -219,6 +218,7 @@ def get_project_manager_name(PID: int):
     result = graph.run(query,PID = PID).data()
     query = "MATCH (x:user {UID: $UID}) return x.name as name, x.affiliation as affiliation, x.title as title"
     manager_name = graph.run(query, UID = result[0]['PI']).data()
+
     return manager_name
 
 # add a new project manager for a project
@@ -230,15 +230,17 @@ def add_project_manager(usr: str, PID: int):
     else:
         cnt = count[0]['m.umanageid']+1
     graph.run(query, usr = usr, PID = PID,umanageid = cnt)
+
     return
 
 # get the project list of a project manager
 def user_manage_projects_get(usr: str):
     # return the project user manage 
     query="MATCH (x:user {email:$usr})-[m:Manage]->(p:project) return m.umanageid as umanageid, p.project_type as project_type, p.title as title," \
-        "p.PI as PI, p.description as description, FoV_lower_limit as FoV_lower_limit, p.resolution_upper_limit as resolution_upper_limit," \
+        "p.PI as PI, p.description as description, p.FoV_lower_limit as FoV_lower_limit, p.resolution_upper_limit as resolution_upper_limit," \
         "p.required_camera_type as required_camera_type, p.required_filter as required_filter"
     project = graph.run(query,usr = usr).data()
+
     return project
 
 # add a new target to project
@@ -252,7 +254,29 @@ def create_project_target(usr: str, PID: int, TID: int, filter2observe: list, ti
     else:
         cnt = count[0]['pht.phavetid']+1
     result = graph.run(query, PID = PID, TID = TID, phavetid = cnt, filter2observe = filter2observe, time2observe = time2observe, remain2observe = time2observe, mode = mode).data()
+    
     return result
+
+# 1221 get project / project target progress (percentage)
+def get_progress_percentage(PID: int):
+    query = "MATCH (p:project {PID: $PID})-[r:PhaveT]->(t:target) return r.Time_to_Observe as t2o, r.Remain_to_Observe as r2o, t.TID as TID"
+    target_progress = graph.run(query, PID=PID).data()
+    # calculate entire project progress
+    project_total_t2o = 0
+    project_total_r2o = 0
+    target_progress_percentage = []
+    for t in target_progress:
+        t_t2o = t['t2o']
+        t_r2o = t['r2o']
+        t_TID = t['TID']
+        t_percent = (t_t2o-t_r2o) / t_t2o
+        project_total_t2o += t_t2o
+        project_total_r2o += t_r2o
+        target_progress_percentage.append({'TID': t_TID, 'percentage': t_percent})
+    
+    project_progress_percentage = (project_total_t2o-project_total_r2o) / project_total_t2o
+
+    return project_progress_percentage, target_progress_percentage
 
 # 1214 return the qualified equipments when join a project
 def get_qualified_equipment(usr: str, PID: int):
@@ -263,8 +287,8 @@ def get_qualified_equipment(usr: str, PID: int):
     
     qualified_eid_list = []
     for i in range(len(equipment)):
-        if equipment[i]['fovDeg'] < project['FoV_lower_limit']: continue
-        if equipment[i]['resolution'] > project['resolution_upper_limit']: continue
+        if float(equipment[i]['fovDeg']) < project['FoV_lower_limit']: continue
+        if float(equipment[i]['resolution']) > project['resolution_upper_limit']: continue
         # equipment_camera_type = 0 if equipment[i]['camera_type1'] == 'colored' else 1
         if project['required_camera_type'] != equipment[i]['camera_type1']: continue
         # if no filter is required
@@ -352,6 +376,7 @@ def apply_project(usr: str,PID: int)->int:
     else:
         cnt = count[0]['apply.applyid']+1
     graph.run(query, usr = usr, PID = PID, applyid = cnt,status ='waiting', apply_time = time[0]['time'])
+
     return 1
 
 def apply_project_status(usr: str, PID: int)->int:
@@ -380,7 +405,7 @@ def get_apply_waiting(usr: str):
     return waitiing_list
 
 def get_apply_history(usr: str):
-     #this function will return the apply history of an user 
+    # this function will return the apply history of an user 
     query = "MATCH (x:user {email:$usr})-[rel:Apply_to]->(p:project) return p.PID as PID, rel.status as status, p.title as title, rel.apply_time as time"
     apply_history = graph.run(query, usr = usr).data()
     print(apply_history)
