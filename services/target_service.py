@@ -233,7 +233,7 @@ def check_format(filename: str):
                 if row[filter].isdigit() :
                     if int(row[filter]) < 0 :
                         return "rows "+ str(index+1) + " error : \"" + filter + " Time\" format error"   
-                else
+                else:
                     return "rows "+ str(index+1) + " error : " + filter + " format error. "      
 
 
@@ -299,9 +299,9 @@ def upload_2_DB(filename : str, PID : int, usr: str):
             filter2observe = []
 
             for filter in FILTER:
-                if(int(row[filter]) > 0)
+                if(int(row[filter]) > 0):
                     filter2observe.append(True)
-                else
+                else:
                     filter2observe.append(False)
                 time2observe.append(int(row[filter]))
 

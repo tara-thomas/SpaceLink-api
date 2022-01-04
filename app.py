@@ -412,14 +412,14 @@ def equipments_post():
     # equipment specs
     if (request.json['method'] == 'update' or request.json['method'] == 'create') :
         telName = request.json['telName'].strip()
-        focalLength = request.json['focalLength']
-        diameter = request.json['diameter']
+        focalLength = int(request.json['focalLength'])
+        diameter = int(request.json['diameter'])
 
         # camera specs
         camName = request.json['camName'].strip()
-        pixelSize = request.json['pixelSize']
-        sensorW = request.json['sensorW']
-        sensorH = request.json['sensorH']
+        pixelSize = int(request.json['pixelSize'])
+        sensorW = int(request.json['sensorW'])
+        sensorH = int(request.json['sensorH'])
         camera_type1  = request.json['camera_type1'].strip()
         camera_type2 = request.json['camera_type2'].strip()
 
@@ -457,7 +457,7 @@ def equipments_post():
 
         # barlow / focal reducer
         barlowName = request.json['barlowName'].strip()
-        magnification = request.json['magnification']
+        magnification = int(request.json['magnification'])
 
         # calculated specs (need to save focalRatio, fovDeg, and resolution)
         focalRatio = focalLength * magnification / diameter

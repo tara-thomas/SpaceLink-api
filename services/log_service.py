@@ -56,7 +56,7 @@ def check_log_format(filename: str):
                 if row[filter].isdigit() :
                     if int(row[filter]) < 0 :
                         return "rows "+ str(index+1) + " error : \"" + filter + " Time\" format error"   
-                else
+                else:
                     return "rows "+ str(index+1) + " error : " + filter + " format error. "      
 
 
@@ -74,7 +74,7 @@ def check_log_format(filename: str):
 
 def update_observe_time(filename : str, PID : int, usr: str):
          
-      with open(filename, newline="") as csvfile:
+    with open(filename, newline="") as csvfile:
         rows = csv.DictReader(csvfile)
         
         for index,row in rows:
