@@ -141,12 +141,19 @@ def update_user_equipments(telName: str, focalLength: float, diameter: float,
     fovArcsec = fovDeg * 3600
     resolution = fovArcsec / sensorW
 
-    query ="MATCH (x:user {email:$usr})-[h:UhaveE {uhaveid: $uhaveid}]->(e:equipments)" \
-             f"SET h.site='{site}', h.longitude='{longitude}', h.latitude='{latitude}', h.altitude='{altitude}', h.time_zone='{tz}', h.sky_quality='{sq}'," \
-             f"e.telName='{telName}', e.focalLength='{focalLength}', e.diameter='{diameter}',e.camName='{camName}', e.pixelSize='{pixelSize}', e.sensorW='{sensorW}', e.sensorH='{sensorH}', e.camera_type1='{camera_type1}', e.camera_type2='{camera_type2}',"\
-             f"e.filterArray='{filterArray}', e.mountName='{mountName}', e.mount_type='{mount_type}', e.deg='{deg}', e.barlowName='{barlowName}', e.magnification='{magnification}', e.focalRatio='{focalRatio}', e.fovDeg='{fovDeg}', e.resolution='{resolution}'" 
-    user_equipments = graph.run(query ,usr = usr, uhaveid = uhaveid)
+    # query ="MATCH (x:user {email:$usr})-[h:UhaveE {uhaveid: $uhaveid}]->(e:equipments)" \
+    #          f"SET h.site='{site}', h.longitude={longitude}, h.latitude={latitude}, h.altitude={altitude}, h.time_zone='{tz}', h.sky_quality={sq}," \
+    #          f"e.telName='{telName}', e.focalLength={focalLength}, e.diameter={diameter}, e.camName='{camName}', e.pixelSize={pixelSize}, e.sensorW={sensorW}, e.sensorH={sensorH}, e.camera_type1='{camera_type1}', e.camera_type2='{camera_type2}',"\
+    #          f"e.filterArray={filterArray}, e.mountName='{mountName}', e.mount_type='{mount_type}', e.deg={deg}, e.barlowName='{barlowName}', e.magnification={magnification}, e.focalRatio={focalRatio}, e.fovDeg={fovDeg}, e.resolution={resolution}" 
+    
+    query = "MATCH (x:user {email:$usr})-[h:UhaveE {uhaveid: $uhaveid}]->(e:equipments)" \
+            "set h.site=$site, h.longitude=$longitude, h.latitude=$latitude, h.altitude=$altitude, h.time_zone=$tz, h.sky_quality=$sq," \
+            "e.telName=$telName, e.focalLength=$focalLength, e.diameter=$diameter, e.camName=$camName, e.pixelSize=$pixelSize, e.sensorW=$sensorW, e.sensorH=$sensorH, e.camera_type1=$camera_type1, e.camera_type2=$camera_type2," \
+            "e.filterArray=$filterArray, e.mountName=$mountName, e.mount_type=$mount_type, e.deg=$deg, e.barlowName=$barlowName, e.magnification=$magnification, e.focalRatio=$focalRatio, e.fovDeg=$fovDeg, e.resolution=$resolution" 
+    
+    user_equipments = graph.run(query, usr=usr, uhaveid=uhaveid, site=site, longitude=longitude, latitude=latitude, altitude=altitude, tz=tz, sq=sq, telName=telName, focalLength=focalLength, diameter=diameter, camName=camName, pixelSize=pixelSize, sensorW=sensorW, sensorH=sensorH, camera_type1=camera_type1, camera_type2=camera_type2, filterArray=filterArray, mountName=mountName, mount_type=mount_type, deg=deg, barlowName=barlowName, magnification=magnification, focalRatio=focalRatio, fovDeg=fovDeg, resolution=resolution)
     update_declination(uhaveid)
+    
     return user_equipments
 
 # return the information of a user's equipment
@@ -159,6 +166,7 @@ def get_user_equipments(usr: str):
         "e.telName as telName, e.focalLength as focalLength, e.diameter as diameter, e.camName as camName, e.pixelSize as pixelSize, e.sensorW as sensorW, e.sensorH as sensorH," \
         "e.camera_type1 as camera_type1, e.camera_type2 as camera_type2, e.filterArray as filterArray, e.mountName as mountName, e.mount_type as mount_type, e.deg as deg," \
         "e.barlowName as barlowName, e.magnification as magnification, e.focalRatio as focalRatio, e.fovDeg as fovDeg, e.resolution as resolution, e.project_priority as priority, h.uhaveid as id" ,usr=usr).data()
+
     return user_equipments
 
 #this function calculate the declination limit of the equipment and update the table
