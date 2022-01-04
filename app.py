@@ -720,7 +720,7 @@ def addTarget():
     rFilter = request.json['rFilter']
     gFilter = request.json['gFilter']
     bFilter = request.json['bFilter']
-    haFilter = request.json['haFilter']
+    haFilter = request.json['haFilter'] 
     oiiiFilter = request.json['oiiiFilter']
     siiFilter = request.json['siiFilter']
     duoFilter = request.json['duoFilter']
@@ -782,7 +782,55 @@ def addTarget():
 #         return redirect(url_for("login_get"))
 
 
+def allowed_file(filename: str):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 @app.route('/project/upload_target_from_file', methods=['POST'])
+def upload_file():
+    usr = session["usr"]
+    session["usr"] = usr
+    PID = request.json['PID'].strip()
+    if request.method == 'POST':
+        # check if the post request has the file part
+        if 'file' not in request.files:
+            flash('No file part')
+            print("file not found")
+            return "Upload failed"
+        file = request.files['file']
+        # If the user does not select a file, the response submits an
+        # empty file without a filename.
+        if file.filename == '':
+            flash('No selected file')
+            return "Upload failed"
+        if file and allowed_file(file.filename):
+            #certe random and secure name forthe upload file 
+            filename = secure_filename(file.filename) + '_' +str(uuid.uuid4())
+            print(filename)
+
+            #if the directory not exist, then create one 
+            path = os.path.join(app.config['UPLOAD_FOLDER'],"upload_tmp")
+            pathlib.Path(path).mkdir(parents=True,exist_ok=True)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'],"upload_tmp",filename)
+            file.save(filepath)
+            
+            #check the file format 
+            check_format_result = check_format(filepath)
+            if( check_format_result != "Success"):
+                os.remove(filepath)
+                return 0
+            #upload file to DB
+            if(upload_2_DB(filepath,PID,usr)): 
+                os.remove(filepath)
+                return 1
+            else:
+                os.remove(filepath)
+                return 0
+
+        else :
+            print("Not supported file")
+
+@app.route('/project/upload_log', methods=['POST'])
 def upload_file():
     usr = session["usr"]
     session["usr"] = usr
@@ -805,23 +853,23 @@ def upload_file():
             print(filename)
 
             #if the directory not exist, then create one 
-            path = os.path.join(app.config['UPLOAD_FOLDER'],"upload_tmp")
+            path = os.path.join(app.config['UPLOAD_FOLDER'],"log_tmp")
             pathlib.Path(path).mkdir(parents=True,exist_ok=True)
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'],"upload_tmp",filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'],"log_tmp",filename)
             file.save(filepath)
             
             #check the file format 
-            check_format_result = check_format(filepath);
+            check_format_result = check_log_format(filepath)
             if( check_format_result != "Success"):
                 os.remove(filepath)
-                return check_format_result
-            #upload file to DB
-            if(upload_2_DB(filepath,PID,usr)): 
+                return 0
+            #update the observe time
+            if(update_observe_time(filepath,PID,usr)): 
                 os.remove(filepath)
-                return "Upload success"
+                return 1
             else:
                 os.remove(filepath)
-                return "Upload failed"
+                return 0
 
         else :
             print("Not supported file")
