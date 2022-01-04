@@ -786,8 +786,8 @@ def allowed_file(filename: str):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-@app.route('/project/upload_target_from_file', methods=['POST'])
-def upload_file():
+@app.route('/project/uploadTarget', methods=['POST'])
+def upload_target():
     usr = session["usr"]
     session["usr"] = usr
     PID = request.json['PID'].strip()
@@ -830,8 +830,8 @@ def upload_file():
         else :
             print("Not supported file")
 
-@app.route('/project/upload_log', methods=['POST'])
-def upload_file():
+@app.route('/project/uploadLog', methods=['POST'])
+def upload_log():
     usr = session["usr"]
     session["usr"] = usr
     PID = request.json['PID'].strip()

@@ -3,6 +3,7 @@ import pymongo
 from datetime import datetime
 from services.target_service import time_deduction
 import json
+import csv
 
 graph = db_auth()
 
@@ -54,7 +55,7 @@ def check_log_format(filename: str):
             
             for filter in FILTER:
                 if row[filter].isdigit() :
-                    if int(row[filter]) < 0 :
+                    if int(row[filter]) < 0:
                         return "rows "+ str(index+1) + " error : \"" + filter + " Time\" format error"   
                 else:
                     return "rows "+ str(index+1) + " error : " + filter + " format error. "      
@@ -76,21 +77,21 @@ def update_observe_time(filename : str, PID : int, usr: str):
          
     with open(filename, newline="") as csvfile:
         rows = csv.DictReader(csvfile)
+    
+    for index, row in rows:
+
+        # query by coordinate to check target exist or not
+        query = "MATCH(t:target{name:$name}) return t.TID as TID"
+        result = graph.run(query, name=usr).data()
+
+        TID = int(result['TID']) 
         
-        for index,row in rows:
-    
-            # query by coordinate to check target exist or not
-            query = "MATCH(t:target{name:$nam}) return t.TID as TID"
-    
-            TID = int(result['TID']) 
-            
-            
-            observeTime = []
-            for filter in FILTER:
-                observeTime.append(int(row[filter]))
+        
+        observeTime = []
+        for filter in FILTER:
+            observeTime.append(int(row[filter]))
 
-            time_deduction(PID, TID, observe_time)
-
+        time_deduction(PID, TID, observeTime)
 
     return 1
     
