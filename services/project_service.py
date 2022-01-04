@@ -211,13 +211,14 @@ def update_project(usr: str, PID: int, umanageid: int, project_type: str, title:
             "m.FoV_lower_limit=$FoV_lower_limit, m.resolution_upper_limit=$resolution_upper_limit," \
             "m.required_camera_type=$required_camera_type, m.required_filter=$required_filter" 
 
-    project = graph.run(query, usr=usr, umanageid=umanageid, project_type=project_type, title=title, description=description, FoV_lower_limit=FoV_lower_limit, resolution_upper_limit=resolution_upper_limit, required_camera_type=required_camera_type, required_filter=required_filter)
+    project = graph.run(query, usr=usr, umanageid=umanageid, project_type=project_type, title=title, description=description, FoV_lower_limit=FoV_lower_limit, resolution_upper_limit=resolution_upper_limit, required_camera_type=required_camera_type, required_filter=required_filter).data()
 
     return project   
 
 # delete a project
 def delete_project(usr: str, PID: int, umanageid: int):
-    graph.run("MATCH (x:user {email:$usr})-[m:Manage {umanageid: $umanageid}]->(p:project) DELETE m,p", usr=usr, umanageid = umanageid)
+    graph.run("MATCH (p:project {PID:$PID})-[r:PHaveT]->(t:target) DELETE r", PID=PID)
+    graph.run("MATCH (x:user {email:$usr})-[m:Manage {umanageid: $umanageid}]->(p:project) DELETE m, p", usr=usr, umanageid = umanageid)
 
 # get the project's manager
 def get_project_manager_name(PID: int):
@@ -274,7 +275,7 @@ def user_manage_projects_get(usr: str):
 
 # add a new target to project
 def create_project_target(usr: str, PID: int, TID: int, filter2observe: list, time2observe: list, mode: int):
-    query="MATCH (p:project {PID: $PID}) MATCH (t:target {TID:$TID}) create (p)-[pht:PHaveT {phavetid:$phavetid, Filter_to_Observe:$filter2observe, Time_to_Observe:$time2observe, Remain_to_Observe:$remain2observe, Mode:$mode}]->(t) return pht.phavetid"
+    query="MATCH (p:project {PID:$PID}) MATCH (t:target {TID:$TID}) create (p)-[pht:PHaveT {phavetid:$phavetid, Filter_to_Observe:$filter2observe, Time_to_Observe:$time2observe, Remain_to_Observe:$remain2observe, Mode:$mode}]->(t) return pht.phavetid"
     # only show the observable targets of that equipment
     # update_project_equipment_observe_list(usr, PID, TID, JohnsonB, JohnsonR, JohnsonV, SDSSu, SDSSg, SDSSr, SDSSi, SDSSz)
     count = graph.run("MATCH ()-[pht:PHaveT]->() return pht.phavetid  order by pht.phavetid DESC limit 1 ").data()
@@ -288,15 +289,16 @@ def create_project_target(usr: str, PID: int, TID: int, filter2observe: list, ti
 
 # 1221 get project / project target progress (percentage)
 def get_progress_percentage(PID: int):
-    query = "MATCH (p:project {PID: $PID})-[r:PhaveT]->(t:target) return r.Time_to_Observe as t2o, r.Remain_to_Observe as r2o, t.TID as TID"
+    query = "MATCH (p:project {PID:$PID})-[r:PHaveT]->(t:target) return r.Time_to_Observe as t2o, r.Remain_to_Observe as r2o, t.TID as TID"
     target_progress = graph.run(query, PID=PID).data()
+
     # calculate entire project progress
     project_total_t2o = 0
     project_total_r2o = 0
     target_progress_percentage = []
     for t in target_progress:
-        t_t2o = t['t2o']
-        t_r2o = t['r2o']
+        t_t2o = sum(t['t2o'])
+        t_r2o = sum(t['r2o'])
         t_TID = t['TID']
         t_percent = (t_t2o-t_r2o) / t_t2o
         project_total_t2o += t_t2o

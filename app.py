@@ -190,7 +190,9 @@ def manageProject():
         usr = request.headers['user']
         session["usr"] = usr
         projects = user_manage_projects_get(usr)
-        print(projects)
+        # PID = request.json['PID']
+        # project_progress_percentage, target_progress_percentage = get_progress_percentage(int(PID))
+        # print(project_progress_percentage, target_progress_percentage)
         return {'projects': projects}
         #return render_template("accounts/manageprojects.html", user_profile=user_profile, projects = projects)
     else:
@@ -483,7 +485,7 @@ def equipments_post():
 
         if request.json['method'] == 'delete':            
             hid = request.json['uhaveid']
-            delete_user_equipment(usr,int(hid))
+            delete_user_equipment(usr, int(hid))
             # delete user's equipment in postgresSQL
             # postgres_delete_user_equipments(int(hid))
 
@@ -691,13 +693,14 @@ def project_create_post():
             umanageid = request.json['umanageid']
             PID = request.json['PID']
             projects = update_project(usr, int(PID), int(umanageid), project_type, title, description, FoV_lower_limit, resolution_upper_limit, required_camera_type, required_filter)
+            return "updated"
         if request.json['method'] == 'delete':            
             umanageid = request.json['umanageid']
             PID = request.json['PID']
             delete_project(usr, int(PID), int(umanageid))
-            return 200
+            return "deleted"
         # projects = user_manage_projects_get(usr)
-        return jsonify(projects = projects.PID)
+        return jsonify(projects=projects.PID)
     else:
         return "login"
         # return redirect(url_for("login_get"))

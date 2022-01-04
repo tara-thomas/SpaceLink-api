@@ -151,7 +151,7 @@ def update_user_equipments(telName: str, focalLength: float, diameter: float,
             "e.telName=$telName, e.focalLength=$focalLength, e.diameter=$diameter, e.camName=$camName, e.pixelSize=$pixelSize, e.sensorW=$sensorW, e.sensorH=$sensorH, e.camera_type1=$camera_type1, e.camera_type2=$camera_type2," \
             "e.filterArray=$filterArray, e.mountName=$mountName, e.mount_type=$mount_type, e.deg=$deg, e.barlowName=$barlowName, e.magnification=$magnification, e.focalRatio=$focalRatio, e.fovDeg=$fovDeg, e.resolution=$resolution" 
     
-    user_equipments = graph.run(query, usr=usr, uhaveid=uhaveid, site=site, longitude=longitude, latitude=latitude, altitude=altitude, tz=tz, sq=sq, telName=telName, focalLength=focalLength, diameter=diameter, camName=camName, pixelSize=pixelSize, sensorW=sensorW, sensorH=sensorH, camera_type1=camera_type1, camera_type2=camera_type2, filterArray=filterArray, mountName=mountName, mount_type=mount_type, deg=deg, barlowName=barlowName, magnification=magnification, focalRatio=focalRatio, fovDeg=fovDeg, resolution=resolution)
+    user_equipments = graph.run(query, usr=usr, uhaveid=uhaveid, site=site, longitude=longitude, latitude=latitude, altitude=altitude, tz=tz, sq=sq, telName=telName, focalLength=focalLength, diameter=diameter, camName=camName, pixelSize=pixelSize, sensorW=sensorW, sensorH=sensorH, camera_type1=camera_type1, camera_type2=camera_type2, filterArray=filterArray, mountName=mountName, mount_type=mount_type, deg=deg, barlowName=barlowName, magnification=magnification, focalRatio=focalRatio, fovDeg=fovDeg, resolution=resolution).data()
     update_declination(uhaveid)
     
     return user_equipments
