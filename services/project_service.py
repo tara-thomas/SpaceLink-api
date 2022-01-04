@@ -14,6 +14,7 @@ import random
 graph = db_auth()
 
 def get_project_info(pid_list : list):
+
     project = []
     for i in range(len(pid_list)):
         info = get_project_detail(pid_list[i])
@@ -179,7 +180,7 @@ def create_project(usr, project_type, title, description, FoV_lower_limit, resol
     project.FoV_lower_limit = FoV_lower_limit
     project.resolution_upper_limit = resolution_upper_limit
     project.required_camera_type = required_camera_type
-    project.required_filter = required_filter
+    # project.required_filter = required_filter
     print(required_camera_type)
     print(required_filter)
     graph.create(project)
@@ -242,44 +243,20 @@ def user_manage_projects_get(usr: str):
 
 # add a new target to project
 def create_project_target(usr: str, PID: int, TID: int, filter2observe: list, time2observe: list, mode: int):
-    query="MATCH (p:project {PID: $PID}) MATCH (t:target {TID:$TID}) create (p)-[pht:PhaveT {phavetid:$phavetid, Filter_to_Observe:$filter2observe, Time_to_Observe:$time2observe, Remain_to_Observe:$remain2observe, Mode:$mode}]->(t) return pht.phavetid"
+    query="MATCH (p:project {PID: $PID}) MATCH (t:target {TID:$TID}) create (p)-[pht:PHaveT {phavetid:$phavetid, Filter_to_Observe:$filter2observe, Time_to_Observe:$time2observe, Remain_to_Observe:$remain2observe, Mode:$mode}]->(t) return pht.phavetid"
     # only show the observable targets of that equipment
     # update_project_equipment_observe_list(usr, PID, TID, JohnsonB, JohnsonR, JohnsonV, SDSSu, SDSSg, SDSSr, SDSSi, SDSSz)
-    count = graph.run("MATCH ()-[pht:PhaveT]->() return pht.phavetid  order by pht.phavetid DESC limit 1 ").data()
+    count = graph.run("MATCH ()-[pht:PHaveT]->() return pht.phavetid  order by pht.phavetid DESC limit 1 ").data()
     if len(count) == 0:
         cnt = 0
     else:
         cnt = count[0]['pht.phavetid']+1
-    print(filter2observe)
-    print(time2observe)
-    print(mode)
     result = graph.run(query, PID = PID, TID = TID, phavetid = cnt, filter2observe = filter2observe, time2observe = time2observe, remain2observe = time2observe, mode = mode).data()
     return result
 
-# 1221 get project / project target progress (percentage)
-def get_progress_percentage(PID: int):
-    query = "MATCH (p:project {PID: $PID})-[r:PhaveT]->(t:target) return r.Time_to_Observe as t2o, r.Remain_to_Observe as r2o, t.TID as TID"
-    target_progress = graph.run(query, PID=PID).data()
-    # calculate entire project progress
-    project_total_t2o = 0
-    project_total_r2o = 0
-    target_progress_percentage = []
-    for t in target_progress:
-        t_t2o = t['t2o']
-        t_r2o = t['r2o']
-        t_TID = t['TID']
-        t_percent = (t_t2o-t_r2o) / t_t2o
-        project_total_t2o += t_t2o
-        project_total_r2o += t_r2o
-        target_progress_percentage.append({'TID': t_TID, 'percentage': t_percent})
-    
-    project_progress_percentage = (project_total_t2o-project_total_r2o) / project_total_t2o
-
-    return project_progress_percentage, target_progress_percentage
-
 # 1214 return the qualified equipments when join a project
 def get_qualified_equipment(usr: str, PID: int):
-    query_eid = "MATCH (x:user{email:$usr})-[r:UhaveE]->(e:equipments) RETURN e.EID as EID, e.telName as telName, e.filterArray as filterArray, e.fovDeg as fovDeg, e.resolution as resolution, e.camera_type1 as camera_type1, r.declination_limit as declination"
+    query_eid = "MATCH (x:user{email:$usr})-[r:UhaveE]->(e:equipments) RETURN e.EID as EID, e.telName as telName, e.filterArray as filterArray, r.declination_limit as declination"
     equipment = graph.run(query_eid, usr=usr).data()
     # project_target = graph.run("MATCH (p:project {PID: $PID})-[pht:PHaveT]->(t:target) return pht.filter2observe as filter2observe, t.TID as TID, t.name as name, t.latitude as dec", PID=PID).data()
     project = graph.run("MATCH (p:project {PID: $PID}) return p.FoV_lower_limit as FoV_lower_limit, p.resolution_upper_limit as resolution_upper_limit, p.required_camera_type as required_camera_type, p.required_filter as required_filter", PID=PID).data()
@@ -298,7 +275,7 @@ def get_qualified_equipment(usr: str, PID: int):
 
     return qualified_eid_list
 
-# this function is used for test, the user will auto join the project (1214 modified)
+# this function is uesd for test, the user will auto join the project (1214 modified)
 def auto_join(usr: str, PID: int, selected_eid_list: list):
     # check if already joined the project 
     query = "MATCH (x:user {email:$usr})-[r]->(p:project{PID:$PID})  return exists((x)-[:Member_of]->(p))"
@@ -348,7 +325,7 @@ def auto_join(usr: str, PID: int, selected_eid_list: list):
             update_equipment_project_priority(usr, int(eid), old_priority)
 
 
-# this function is used to test, the user will auto leave the project
+#this function is used to test, the user will auto leave the project
 def auto_leave(usr: str, PID: int):
     # delete user-project relationship
     query_user_bye = "MATCH (x:user {email:$usr})-[rel:Memberof]->(p:project{PID:$PID}) delete rel"
@@ -452,9 +429,9 @@ def get_project_member(usr: str, PID: int):
 def get_project_equipment(PID: int):
     # return the equipments in this project
     query = "MATCH (p:project {PID:$PID})-[rel:PhaveE]->(e:equipments) return e.EID as eid,"\
-        "e.telName as telName, e.focalLength as focalLength, e.diameter as diameter, e.camName as camName, e.pixelSize as pixelSize, e.sensorW as sensorW, e.sensorH as sensorH"\
-        "e.camera_type1 as camera_type1, e.camera_type2 as camera_type2, e.filterArray as filterArray, e.mountName as mountName, e.mount_type as mount_type, e.deg as deg,"\
-        "e.barlowName as barlowName, e.magnification as magnification, e.focalRatio as focalRatio, e.fovDeg as fovDeg, e.resolution as resolution, rel.declination as declination"
+        "e.aperture as aperture, e.Fov as Fov, e.pixel_scale as pixel_scale, e.tracking_accuracy as accuracy, e.lim_magnitude as lim_magnitude, e.elevation_lim as elevation_lim,"\
+        "e.mount_type as mount_type, e.camera_type1 as camera_type1, e.camera_type2 as camera_type2, e.JohnsonB as JohnsonB, e.JohnsonR as JohnsonR, e.JohnsonV as JohnsonV, e.SDSSu as SDSSu,"\
+        "e.SDSSg as SDSSg, e.SDSSr as SDSSr, e.SDSSi as SDSSi,e.SDSSz as SDSSz, rel.declination as declination"
     eq_list = graph.run(query, PID =PID).data()
     return eq_list
 
@@ -467,7 +444,7 @@ def get_project_join(usr: str):
         return None
     return  join_list
 
-# return the project based on user's equipment (1229 not sure if this function is useful)
+# return the project based on user's equipment 
 def get_project_join_filter(projectlist: list,usr: str,uhaveid: int):
     equipment = graph.run("MATCH (x:user{email: $usr})-[:UhaveE{uhaveid:$uhaveid}]->(e:equipments) " \
         " return e.EID as EID,e.JohnsonB as jb,e.JohnsonV as jv, e.JohnsonR as jr, e.SDSSu as su, e.SDSSg as sg, e.SDSSr as sr , e.SDSSi as si, e.SDSSz as sz" \
@@ -503,29 +480,19 @@ def get_project_join_filter(projectlist: list,usr: str,uhaveid: int):
     return result
 
 def fliter_project_target(usr: str, PID: int):
-    # return the target based on user's equipment 
-    # query = "MATCH (x:user {email:$usr})-[rel:UhaveE]->(e:equipments)" \
-    #     " return e.EID as EID,e.mount_type as mount_type, e.camera_type1 as camera_type1, e.camera_type2 as camera_type2,e.JohnsonB as jb,e.JohnsonV as jv, e.JohnsonR as jr, e.SDSSu as su, e.SDSSg as sg, e.SDSSr as sr , e.SDSSi as si, e.SDSSz as sz, rel.declination_limit as declination"
-    # equipment = graph.run(query, usr = usr).data()
-    # # query = "MATCH (x:user {email:$usr})-[rel:UhaveE]->(e:equipments), (n:project {PID: $PID}) where n.mount_type=e.mount_type and n.camera_type1=e.camera_type1 and n.camera_type2=e.camera_type2 " \
-    # #    "and n.JohnsonB=e.JohnsonB and n.JohnsonV=e.JohnsonV and n.JohnsonR=e.JohnsonR  and n.SDSSu=e.SDSSu  and n.SDSSg=e.SDSSg and n.SDSSr=e.SDSSr and n.SDSSi=e.SDSSi and n.SDSSz=e.SDSSz" \
-    # #     " return e.EID as EID,e.JohnsonB as jb,e.JohnsonV as jv, e.JohnsonR as jr, e.SDSSu as su, e.SDSSg as sg, e.SDSSr as sr , e.SDSSi as si, e.SDSSz as sz"
-    # # equipment = graph.run(query, usr = usr, PID = PID).data()
-    # project_target = graph.run("MATCH (p:project {PID: $PID})-[pht:PHaveT]->(t:target) " \
-    #     " return pht.JohnsonB as JohnsonB, pht.JohnsonV as JohnsonV, pht.JohnsonR as JohnsonR, pht.SDSSu as SDSSu, pht.SDSSg as SDSSg, pht.SDSSr as SDSSr , pht.SDSSi as SDSSi, pht.SDSSz as SDSSz"
-    # ", t.TID as TID, t.name as name, t.latitude as lat, t.longitude as lon", PID = PID).data()
-    # print(len(equipment))
-    # print(len(project_target))
-    
-    query_eid = "MATCH (x:user{email:$usr})-[r:UhaveE]->(e:equipments) RETURN e.EID as EID, e.telName as telName, e.filterArray as filterArray, e.fovDeg as fovDeg, e.resolution as resolution, e.camera_type1 as camera_type1, r.declination_limit as declination"
-    equipment = graph.run(query_eid, usr=usr).data()
-
-    query_pht = "MATCH (p:project {PID: $PID})-[pht:PHaveT]->(t:target) return pht.phavetid as phavetid, pht.Filter_to_Observe as f2o, pht.Time_to_Observe as t2o, pht.Remain_to_Observe as r2o, pht.Mode as mode"\
-        ", t.TID as TID, t.name as name, t.latitude as lat, t.longitude as lon"
-    project_target = graph.run(query_pht, PID=PID).data()
+    #return the target based on user's equipment 
+    query = "MATCH (x:user {email:$usr})-[rel:UhaveE]->(e:equipments)" \
+        " return e.EID as EID,e.mount_type as mount_type, e.camera_type1 as camera_type1, e.camera_type2 as camera_type2,e.JohnsonB as jb,e.JohnsonV as jv, e.JohnsonR as jr, e.SDSSu as su, e.SDSSg as sg, e.SDSSr as sr , e.SDSSi as si, e.SDSSz as sz, rel.declination_limit as declination"
+    equipment = graph.run(query, usr = usr).data()
+    #query = "MATCH (x:user {email:$usr})-[rel:UhaveE]->(e:equipments), (n:project {PID: $PID}) where n.mount_type=e.mount_type and n.camera_type1=e.camera_type1 and n.camera_type2=e.camera_type2 " \
+    #   "and n.JohnsonB=e.JohnsonB and n.JohnsonV=e.JohnsonV and n.JohnsonR=e.JohnsonR  and n.SDSSu=e.SDSSu  and n.SDSSg=e.SDSSg and n.SDSSr=e.SDSSr and n.SDSSi=e.SDSSi and n.SDSSz=e.SDSSz" \
+    #    " return e.EID as EID,e.JohnsonB as jb,e.JohnsonV as jv, e.JohnsonR as jr, e.SDSSu as su, e.SDSSg as sg, e.SDSSr as sr , e.SDSSi as si, e.SDSSz as sz"
+    #equipment = graph.run(query, usr = usr, PID = PID).data()
+    project_target = graph.run("MATCH (p:project {PID: $PID})-[pht:PHaveT]->(t:target) " \
+        " return pht.JohnsonB as JohnsonB, pht.JohnsonV as JohnsonV, pht.JohnsonR as JohnsonR, pht.SDSSu as SDSSu, pht.SDSSg as SDSSg, pht.SDSSr as SDSSr , pht.SDSSi as SDSSi, pht.SDSSz as SDSSz"
+    ", t.TID as TID, t.name as name, t.latitude as lat, t.longitude as lon", PID = PID).data()
     print(len(equipment))
     print(len(project_target))
-
     target = []
     # filter with equipment capability
     for i in range(len(equipment)):
@@ -558,7 +525,7 @@ def fliter_project_target(usr: str, PID: int):
 
     return target
 
-# Update the equipment target list when add new target to project (1229 this function seems not being called)
+# Update the equipment target list when add new target to project
 def update_project_equipment_observe_list(usr: str, PID: int, TID: int, JohnsonB: str, JohnsonR: str, JohnsonV: str,SDSSu: str,SDSSg: str,SDSSr: str,SDSSi: str,SDSSz: str):
 
     target_lat = graph.run("MATCH(t:target{TID:$TID}) return t.latitude as lat", TID = TID).data()
@@ -597,7 +564,7 @@ def update_project_equipment_observe_list(usr: str, PID: int, TID: int, JohnsonB
             query = "MATCH (p:project {PID: $PID})-[rel:PHaveE]->(e:equipment{EID:$EID}) set rel.target_list={target_list:$target_list} "
             graph.run(query, PID = PID, EID = eq_list[i]['eid'], target_list = target_list)
 
-# initial a equipment target list when create project_equipment relationship (1229 this function seems not being called)
+# initial a equipment target list when create project_equipment relationship
 def initial_equipment_target_list(usr: str, EID: int, PID: int):
     project_target = graph.run("MATCH (p:project {PID: $PID})-[pht:PHaveT]->(t:target) " \
         " return pht.JohnsonB as JohnsonB, pht.JohnsonV as JohnsonV, pht.JohnsonR as JohnsonR, pht.SDSSu as SDSSu, pht.SDSSg as SDSSg, pht.SDSSr as SDSSr , pht.SDSSi as SDSSi, pht.SDSSz as SDSSz"
