@@ -695,6 +695,7 @@ def project_create_post():
             umanageid = request.json['umanageid']
             PID = request.json['PID']
             delete_project(usr, int(PID), int(umanageid))
+            return 200
         # projects = user_manage_projects_get(usr)
         return jsonify(projects = projects.PID)
     else:
