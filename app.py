@@ -11,6 +11,7 @@ from services.target_service import *
 from services.log_service import *
 import os, uuid, pathlib
 import random
+import numpy as np
 
 ALLOWED_EXTENSIONS = {'csv', 'tsv'}
 UPLOAD_FOLDER = str(pathlib.Path().resolve())
@@ -140,14 +141,27 @@ def dashboard_get():
     else:
         return "login"
 
-#created for ajax to join project for project on dashboard
+@app.route('/getQualifiedEquipment', methods=['POST'])
+def getQualifiedEquipment():
+    if request.headers['user']:
+        usr = request.headers['user']
+        session["usr"] = usr
+        PID = request.json['PID']
+        qualified_equipment_list = get_qualified_equipment(usr, int(PID))
+        return {'qualified_equipment_list': qualified_equipment_list}
+    else:
+        return "login"
+
+# created for ajax to join project for project on dashboard
 @app.route('/joinProject', methods=['POST'])
 def joinProject():
     if request.headers['user']:
         usr = request.headers['user']
         session["usr"] = usr
         PID = request.json['PID']
-        auto_join(usr,int(PID))
+        # get the equipment user selected
+        selected_equipment = request.json['selected_equipment']
+        auto_join(usr, int(PID), selected_equipment)
         return {"Success": "Successfully joined the project."}
     else:
         return "login"
@@ -222,18 +236,19 @@ def postRankedProjects():
     return "login" 
         #return redirect(url_for("login_get"))
 
-#created for ajax to get target for projects on dashboard
+# created for ajax to get target for projects on dashboard
 @app.route('/getTargetInfo', methods=['POST'])
 def getTargetInfo():
     if request.headers['user']:
         usr = request.headers['user']
         session["usr"] = usr
         hid = request.json['PID']
-        project_target = fliter_project_target(usr, int(hid))
+        # project_target = fliter_project_target(usr, int(hid))
+        project_target = get_project_target(usr, int(hid))
         return jsonify(project_targets = project_target)
     else:
         return "login"
-        #return redirect(url_for("login_get"))
+        # return redirect(url_for("login_get"))
 
 @app.route('/getTargetForProjectInfo', methods=['POST'])
 def getTargetForProjectInfo():
@@ -389,64 +404,105 @@ def equipments_get():
         return "login"
         #return redirect(url_for("login_get"))
 
+# 1214 new equipment attributes
 @app.route('/accounts/equipments', methods=['POST'])
 def equipments_post():
-    # user equipment parameter
-    Site = request.json['site'].strip()
-    Longitude = request.json['longitude'].strip()
-    Latitude = request.json['latitude'].strip()
-    Altitude = request.json['altitude'].strip()
-    tz = request.json['time_zone'].strip()
-    daylight = request.json['daylight_saving'].strip()
-    wv = request.json['water_vapor'].strip()
-    light_pollution = request.json['light_pollution'].strip()
-    
-    #equipments parameter
-    aperture = request.json['aperture'].strip()
-    Fov = request.json['fov'].strip()
-    pixel_scale = request.json['pixel'].strip()
-    tracking_accuracy = request.json['accuracy'].strip()
-    lim_magnitude = request.json['mag'].strip()
-    elevation_lim = request.json['deg'].strip()
-    mount_type = request.json['mount_type'].strip()
-    camera_type1 = request.json['camera_type1'].strip()
-    camera_type2 = request.json['camera_type2'].strip()
-    JohnsonB = request.json['JohnsonB'].strip()
-    JohnsonV = request.json['JohnsonV'].strip()
-    JohnsonR = request.json['JohnsonR'].strip()
-    SDSSu = request.json['SDSSu'].strip()
-    SDSSg = request.json['SDSSg'].strip()
-    SDSSr = request.json['SDSSr'].strip()
-    SDSSi = request.json['SDSSi'].strip()
-    SDSSz = request.json['SDSSz'].strip()
-    # if "usr" in session:
-    if request.headers["user"]:
-        # usr = session["usr"]
-        print("request.headers['user']:", request.headers["user"])
-        usr = request.headers['user']
-        session["usr"] = usr
+    # equipment specs
+    if (request.json['method'] == 'update' or request.json['method'] == 'create') :
+        telName = request.json['telName'].strip()
+        focalLength = request.json['focalLength']
+        diameter = request.json['diameter']
+
+        # camera specs
+        camName = request.json['camName'].strip()
+        pixelSize = request.json['pixelSize']
+        sensorW = request.json['sensorW']
+        sensorH = request.json['sensorH']
+        camera_type1  = request.json['camera_type1'].strip()
+        camera_type2 = request.json['camera_type2'].strip()
+
+        # filters
+        if request.json['method'] == 'create':
+            lFilter = request.json['lFilter']
+            rFilter = request.json['rFilter']
+            gFilter = request.json['gFilter']
+            bFilter = request.json['bFilter']
+            haFilter = request.json['haFilter']
+            oiiiFilter = request.json['oiiiFilter']
+            siiFilter = request.json['siiFilter']
+            duoFilter = request.json['duoFilter']
+            multispectraFilter = request.json['multispectraFilter']
+            JohnsonU = request.json['JohnsonU']
+            JohnsonB = request.json['JohnsonB']
+            JohnsonV = request.json['JohnsonV']
+            JohnsonR = request.json['JohnsonR']
+            JohnsonI = request.json['JohnsonI']
+            SDSSu = request.json['SDSSu']
+            SDSSg = request.json['SDSSg']
+            SDSSr = request.json['SDSSr']
+            SDSSi = request.json['SDSSi']
+            SDSSz = request.json['SDSSz']
+            filterArray = [lFilter, rFilter, gFilter, bFilter, haFilter, oiiiFilter, siiFilter, duoFilter, multispectraFilter,
+                            JohnsonU, JohnsonB, JohnsonV, JohnsonR, JohnsonI, SDSSu, SDSSg, SDSSr, SDSSi, SDSSz]
         
-        if request.json['button'] == 'update':            
-            hid = request.json['uhaveid'].strip() 
-            print(hid)
-            user_equipments = update_user_equipments(aperture,Fov,pixel_scale,tracking_accuracy,lim_magnitude,elevation_lim,mount_type,camera_type1,
-            camera_type2,JohnsonB,JohnsonR,JohnsonV,SDSSu,SDSSg,SDSSr,SDSSi,SDSSz,
-            usr,Site,Longitude,Latitude,Altitude,tz,daylight,wv,light_pollution,int(hid))
-        if request.json['button'] == 'create' :
-            try:
-                equipments = create_equipments(aperture,Fov,pixel_scale,tracking_accuracy,lim_magnitude,elevation_lim,mount_type,camera_type1,camera_type2,JohnsonB,JohnsonR,JohnsonV,SDSSu,SDSSg,SDSSr,SDSSi,SDSSz)
-                print(equipments.EID)
-                user_equipments = create_user_equipments(usr,equipments.EID,Site,Longitude,Latitude,Altitude,tz,daylight,wv,light_pollution)
-            except Exception as e:
-                printf("error!!!! :", e)
-                return e
-            # create spatial user equipment
-            # postgres_create_user_equipments(int(user_equipments.id),get_uid(usr), equipments.EID,Longitude,Latitude,Altitude)
-        if request.json['button'] == 'delete':            
-            hid = request.json['uhaveid'].strip() 
+        if request.json['method'] == 'update':
+            filterArray = request.json['filterArray']
+
+        # mount
+        mountName = request.json['mountName'].strip()
+        mount_type = request.json['mount_type'].strip()
+        deg = request.json['deg']
+
+        # barlow / focal reducer
+        barlowName = request.json['barlowName'].strip()
+        magnification = request.json['magnification']
+
+        # calculated specs (need to save focalRatio, fovDeg, and resolution)
+        focalRatio = focalLength * magnification / diameter
+        sensorSize = pixelSize * sensorW / 1000
+        fovRad = np.arctan(sensorSize / (focalLength * magnification))
+        fovDeg = fovRad * 360 / (2 * np.pi)
+        fovArcsec = fovDeg * 3600
+        resolution = fovArcsec / sensorW
+
+        # user-equipment parameter
+        site = request.json['site'].strip()
+        longitude = request.json['longitude']
+        latitude = request.json['latitude']
+        altitude = request.json['altitude']
+        tz = request.json['time_zone']
+        sq = request.json['sky_quality']
+
+    usr = request.headers['user']
+    session["usr"] = usr
+    if "usr" in session:
+        usr = session["usr"]
+        session["usr"] = usr
+
+        if request.json['method'] == 'delete':            
+            hid = request.json['uhaveid']
             delete_user_equipment(usr,int(hid))
             # delete user's equipment in postgresSQL
-            postgres_delete_user_equipments(int(hid))
+            # postgres_delete_user_equipments(int(hid))
+
+        if request.json['method'] == 'update':            
+            hid = request.json['uhaveid'] 
+            print(hid)
+            user_equipments = update_user_equipments(telName, focalLength, diameter, camName, pixelSize, sensorW, sensorH, camera_type1, camera_type2, filterArray,
+                                                    mountName, mount_type, deg, barlowName, magnification, usr, hid, site, longitude, latitude, altitude, tz, sq)
+        # equipments = create_equipments(telName, focalLength, diameter,
+        #                             camName, pixelSize, sensorW, sensorH, camera_type1, camera_type2,
+        #                             lFilter, rFilter, gFilter, bFilter, haFilter, oiiiFilter, siiFilter, duoFilter, multispectraFilter,
+        #                             JohnsonU, JohnsonB, JohnsonV, JohnsonR, JohnsonI, SDSSu, SDSSg, SDSSr, SDSSi, SDSSz,
+        #                             mountName, mount_type, deg, barlowName, magnification,
+        #                             focalRatio, fovDeg, resolution)
+        if request.json['method'] == 'create':  
+            equipments = create_equipments(telName, focalLength, diameter, camName, pixelSize, sensorW, sensorH, camera_type1, camera_type2, filterArray,
+                                        mountName, mount_type, deg, barlowName, magnification, focalRatio, fovDeg, resolution)
+            user_equipments = create_user_equipments(usr, equipments.EID, site, longitude, latitude, altitude, tz, sq)
+            # create spatial user equipment
+            # postgres_create_user_equipments(int(user_equipments.id),get_uid(usr), equipments.EID,Longitude,Latitude,Altitude)
+        
         user_equipments = get_user_equipments(usr)
         return {'user_equipments':user_equipments}
         #return render_template("accounts/equipments.html", user_equipments = user_equipments)
@@ -583,27 +639,43 @@ def project_create_get():
         # return redirect(url_for("login_get"))
 
 @app.route('/accounts/createProject', methods=['POST'])
-def project_create_post():    
-    title = request.json['title'].strip()
+def project_create_post():
+    # project attributes
     project_type = request.json['project_type'].strip()
+    title = request.json['title'].strip()
     description = request.json['description'].strip()
-    aperture_upper_limit = request.json['aperture_upper_limit']
-    aperture_lower_limit = request.json['aperture_lower_limit']
-    FoV_upper_limit = request.json['FoV_upper_limit']
     FoV_lower_limit = request.json['FoV_lower_limit']
-    pixel_scale_upper_limit = request.json['pixel_scale_upper_limit']
-    pixel_scale_lower_limit = request.json['pixel_scale_lower_limit']
-    mount_type = request.json['mount_type'].strip()
-    camera_type1 = request.json['camera_type1'].strip()
-    camera_type2 = request.json['camera_type2'].strip()
-    JohnsonB = request.json['JohnsonB'].strip()
-    JohnsonV = request.json['JohnsonV'].strip()
-    JohnsonR = request.json['JohnsonR'].strip()
-    SDSSu = request.json['SDSSu'].strip()
-    SDSSg = request.json['SDSSg'].strip()
-    SDSSr = request.json['SDSSr'].strip()
-    SDSSi = request.json['SDSSi'].strip()
-    SDSSz = request.json['SDSSz'].strip()
+    resolution_upper_limit = request.json['resolution_upper_limit']
+
+    # required camera type
+    colored = request.json['camera_type1']
+    # mono = request.json['mono']
+    # required_camera_type = [colored, mono]
+
+    # required filters
+    lFilter = request.json['lFilter']
+    rFilter = request.json['rFilter']
+    gFilter = request.json['gFilter']
+    bFilter = request.json['bFilter']
+    haFilter = request.json['haFilter']
+    oiiiFilter = request.json['oiiiFilter']
+    siiFilter = request.json['siiFilter']
+    duoFilter = request.json['duoFilter']
+    multispectraFilter = request.json['multispectraFilter']
+    JohnsonU = request.json['JohnsonU']
+    JohnsonB = request.json['JohnsonB']
+    JohnsonV = request.json['JohnsonV']
+    JohnsonR = request.json['JohnsonR']
+    JohnsonI = request.json['JohnsonI']
+    SDSSu = request.json['SDSSu']
+    SDSSg = request.json['SDSSg']
+    SDSSr = request.json['SDSSr']
+    SDSSi = request.json['SDSSi']
+    SDSSz = request.json['SDSSz']
+    required_filter = [lFilter, rFilter, gFilter, bFilter, haFilter, oiiiFilter, siiFilter, duoFilter, multispectraFilter,
+                    JohnsonU, JohnsonB, JohnsonV, JohnsonR, JohnsonI, SDSSu, SDSSg, SDSSr, SDSSi, SDSSz]
+    # required_filter = [0 if f == False else f for f in required_filter]
+
     # PID = request.form.get('PID').strip()
     # PI = request.form.get('PI').strip()
     if request.headers['user']:
@@ -611,7 +683,7 @@ def project_create_post():
         session["usr"] = usr
         #if request.form.get('button') == 'Create':
         print('create project')
-        projects = create_project(usr,title,project_type,description,aperture_upper_limit,aperture_lower_limit,FoV_upper_limit,FoV_lower_limit,pixel_scale_upper_limit,pixel_scale_lower_limit,mount_type,camera_type1,camera_type2,JohnsonB,JohnsonR,JohnsonV,SDSSu,SDSSg,SDSSr,SDSSi,SDSSz)
+        projects = create_project(usr, project_type, title, description, FoV_lower_limit, resolution_upper_limit, colored, required_filter)
         # if request.form.get('button') == 'Update':
         #     umanageid = request.form.get('umanageid').strip()
         #     projects = upadte_project(usr,int(PID),int(umanageid),title,project_type,description,aperture_upper_limit,aperture_lower_limit,FoV_upper_limit,FoV_lower_limit,pixel_scale_upper_limit,pixel_scale_lower_limit,mount_type,camera_type1,camera_type2,JohnsonB,JohnsonR,JohnsonV,SDSSu,SDSSg,SDSSr,SDSSi,SDSSz)
@@ -641,29 +713,55 @@ def createTarget():
 def addTarget():
     PID = request.json['PID']
     TID = request.json['TID']
-    JohnsonB = request.json['JohnsonB'].strip()
-    JohnsonV = request.json['JohnsonV'].strip()
-    JohnsonR = request.json['JohnsonR'].strip()
-    SDSSu = request.json['SDSSu'].strip()
-    SDSSg = request.json['SDSSg'].strip()
-    SDSSr = request.json['SDSSr'].strip()
-    SDSSi = request.json['SDSSi'].strip()
-    SDSSz = request.json['SDSSz'].strip()
-    JohnsonBMin = request.json['JohnsonBMin'].strip()
-    JohnsonVMin = request.json['JohnsonVMin'].strip()
-    JohnsonRMin = request.json['JohnsonRMin'].strip()
-    SDSSuMin = request.json['SDSSuMin'].strip()
-    SDSSgMin = request.json['SDSSgMin'].strip()
-    SDSSrMin = request.json['SDSSrMin'].strip()
-    SDSSiMin = request.json['SDSSiMin'].strip()
-    SDSSzMin = request.json['SDSSzMin'].strip()
-    # TODO time to observe (array)
-    time2observe = [JohnsonBMin, JohnsonRMin, JohnsonVMin, SDSSuMin, SDSSgMin, SDSSrMin, SDSSiMin, SDSSzMin]
+    # all filters
+    lFilter = request.json['lFilter']
+    rFilter = request.json['rFilter']
+    gFilter = request.json['gFilter']
+    bFilter = request.json['bFilter']
+    haFilter = request.json['haFilter'] 
+    oiiiFilter = request.json['oiiiFilter']
+    siiFilter = request.json['siiFilter']
+    duoFilter = request.json['duoFilter']
+    multispectraFilter = request.json['multispectraFilter']
+    JohnsonU = request.json['JohnsonU']
+    JohnsonB = request.json['JohnsonB']
+    JohnsonV = request.json['JohnsonV']
+    JohnsonR = request.json['JohnsonR']
+    JohnsonI = request.json['JohnsonI']
+    SDSSu = request.json['SDSSu']
+    SDSSg = request.json['SDSSg']
+    SDSSr = request.json['SDSSr']
+    SDSSi = request.json['SDSSi']
+    SDSSz = request.json['SDSSz']
+    filter2observe = [lFilter, rFilter, gFilter, bFilter, haFilter, oiiiFilter, siiFilter, duoFilter, multispectraFilter, JohnsonU, JohnsonB, JohnsonV, JohnsonR, JohnsonI, SDSSu, SDSSg, SDSSr, SDSSi, SDSSz]
+    # filter2observe = [0 if f == False else f for f in filter2observe]
+
+    # observe time
+    lFilterHr = int(request.json['lMin']) if lFilter else 0
+    rFilterHr = int(request.json['rMin']) if rFilter else 0
+    gFilterHr = int(request.json['gMin']) if gFilter else 0
+    bFilterHr = int(request.json['bMin']) if bFilter else 0
+    haFilterHr = int(request.json['haMin']) if haFilter else 0
+    oiiiFilterHr = int(request.json['oiiiMin']) if oiiiFilter else 0
+    siiFilterHr = int(request.json['siiMin']) if siiFilter else 0
+    duoFilterHr = int(request.json['duoMin']) if duoFilter else 0
+    multispectraFilterHr = int(request.json['multispectraMin']) if multispectraFilter else 0
+    JohnsonUHr = int(request.json['JohnsonUMin']) if JohnsonU else 0
+    JohnsonBHr = int(request.json['JohnsonBMin']) if JohnsonB else 0
+    JohnsonVHr = int(request.json['JohnsonVMin']) if JohnsonV else 0
+    JohnsonRHr = int(request.json['JohnsonRMin']) if JohnsonR else 0
+    JohnsonIHr = int(request.json['JohnsonIMin']) if JohnsonI else 0
+    SDSSuHr = int(request.json['SDSSuMin']) if SDSSu else 0
+    SDSSgHr = int(request.json['SDSSgMin']) if SDSSg else 0
+    SDSSrHr = int(request.json['SDSSrMin']) if SDSSr else 0
+    SDSSiHr = int(request.json['SDSSiMin']) if SDSSi else 0
+    SDSSzHr = int(request.json['SDSSzMin']) if SDSSz else 0
+    time2observe = [lFilterHr, rFilterHr, gFilterHr, bFilterHr, haFilterHr, oiiiFilterHr, siiFilterHr, duoFilterHr, multispectraFilterHr, JohnsonUHr, JohnsonBHr, JohnsonVHr, JohnsonRHr, JohnsonIHr, SDSSuHr, SDSSgHr, SDSSrHr, SDSSiHr, SDSSzHr]
     mode = request.json['mode'] # 0: general, 1: cycle
     if request.headers['user']:
         usr = request.headers['user']
         session["usr"] = usr
-        target  = create_project_target(usr,int(PID),int(TID),JohnsonB, JohnsonR, JohnsonV, SDSSu, SDSSg, SDSSr, SDSSi, SDSSz, time2observe, int(mode))
+        target  = create_project_target(usr, int(PID), int(TID), filter2observe, time2observe, int(mode))
         return jsonify(target = target)
     else:
         return "login"
@@ -682,7 +780,55 @@ def addTarget():
 #         return redirect(url_for("login_get"))
 
 
+def allowed_file(filename: str):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 @app.route('/project/upload_target_from_file', methods=['POST'])
+def upload_file():
+    usr = session["usr"]
+    session["usr"] = usr
+    PID = request.json['PID'].strip()
+    if request.method == 'POST':
+        # check if the post request has the file part
+        if 'file' not in request.files:
+            flash('No file part')
+            print("file not found")
+            return "Upload failed"
+        file = request.files['file']
+        # If the user does not select a file, the response submits an
+        # empty file without a filename.
+        if file.filename == '':
+            flash('No selected file')
+            return "Upload failed"
+        if file and allowed_file(file.filename):
+            #certe random and secure name forthe upload file 
+            filename = secure_filename(file.filename) + '_' +str(uuid.uuid4())
+            print(filename)
+
+            #if the directory not exist, then create one 
+            path = os.path.join(app.config['UPLOAD_FOLDER'],"upload_tmp")
+            pathlib.Path(path).mkdir(parents=True,exist_ok=True)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'],"upload_tmp",filename)
+            file.save(filepath)
+            
+            #check the file format 
+            check_format_result = check_format(filepath)
+            if( check_format_result != "Success"):
+                os.remove(filepath)
+                return 0
+            #upload file to DB
+            if(upload_2_DB(filepath,PID,usr)): 
+                os.remove(filepath)
+                return 1
+            else:
+                os.remove(filepath)
+                return 0
+
+        else :
+            print("Not supported file")
+
+@app.route('/project/upload_log', methods=['POST'])
 def upload_file():
     usr = session["usr"]
     session["usr"] = usr
@@ -705,23 +851,23 @@ def upload_file():
             print(filename)
 
             #if the directory not exist, then create one 
-            path = os.path.join(app.config['UPLOAD_FOLDER'],"upload_tmp")
+            path = os.path.join(app.config['UPLOAD_FOLDER'],"log_tmp")
             pathlib.Path(path).mkdir(parents=True,exist_ok=True)
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'],"upload_tmp",filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'],"log_tmp",filename)
             file.save(filepath)
             
             #check the file format 
-            check_format_result = check_format(filepath);
+            check_format_result = check_log_format(filepath)
             if( check_format_result != "Success"):
                 os.remove(filepath)
-                return check_format_result
-            #upload file to DB
-            if(upload_2_DB(filepath,PID,usr)): 
+                return 0
+            #update the observe time
+            if(update_observe_time(filepath,PID,usr)): 
                 os.remove(filepath)
-                return "Upload success"
+                return 1
             else:
                 os.remove(filepath)
-                return "Upload failed"
+                return 0
 
         else :
             print("Not supported file")

@@ -6,3 +6,4 @@ def db_auth():
     pword = '0000'
     graph = Graph("http://127.0.0.1:7474/db/data/", auth=(user,pword))
     return graph
+    #""http://127.0.0.1:7474/db/data/"

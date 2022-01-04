@@ -3,13 +3,15 @@ from data.db_session import db_auth
 from astroquery.simbad import Simbad
 import astropy.coordinates as coord
 import astropy.units as u
-from services.project_service import update_project_equipment_observe_list
+from services.project_service import update_project_equipment_observe_list, create_project_target
 import webbrowser, json
 from werkzeug.utils import secure_filename
 import csv 
 import re
 
-FILTER = ['Johnson_B','Johnson_V','Johnson_R','SDSS_u','SDSS_g','SDSS_r','SDSS_i','SDSS_z']
+FILTER = ['lFilter','rFilter','gFilter','bFilter','haFilter','oiiiFilter','siiFilter','duoFilter','multispectraFilter', \
+            'JohnsonU','JohnsonB','JohnsonV','JohnsonR','JohnsonI',\
+            'SDSSu','SDSSg','SDSSr','SDSSi','SDSSz']
 PATTERN = re.compile('.*[0-9][0-9]:[0-9][0-9]:[0-9][0-9].[0-9]')
 
 graph = db_auth()
@@ -145,9 +147,9 @@ def hms2degree(ra_hms: list, dec_dms: list):
 
     return ra_degree, dec_degree
     
-def allowed_file(filename: str):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+# def allowed_file(filename: str):
+#     return '.' in filename and \
+#            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def check_format(filename: str):
     #print(filename)
@@ -228,23 +230,20 @@ def check_format(filename: str):
                 return "rows "+ str(index+1) + " error : Mode format error"      
             
             for filter in FILTER:
-                if row[filter].lower() != 'y' and row[filter].lower() != "n" and row[filter].lower() != 'yes' and row[filter].lower() != 'no':
-                    return "rows "+ str(index+1) + " error : " + filter + " format error"      
-                if not mode and row[filter] == 'Y':
-                    try:
-                        time = float(row[filter+'_Time']) 
-                        if time < 0 :
-                            raise Exception
-                    except ValueError: 
-                        return "rows "+ str(index+1) + " error : \"" + filter + "_Time\" format error"   
+                if row[filter].isdigit() :
+                    if int(row[filter]) < 0 :
+                        return "rows "+ str(index+1) + " error : \"" + filter + " Time\" format error"   
+                else
+                    return "rows "+ str(index+1) + " error : " + filter + " format error. "      
 
-            if mode:
-                try:
-                    time = float(row['Total_cycle__time'])
-                    if time < 0:
-                        raise Exception
-                except ValueError:
-                    return "rows "+ str(index+1) + " error : \"Total cycle time\" format error"   
+
+            # if mode:
+            #     try:
+            #         time = float(row['Total_cycle__time'])
+            #         if time < 0:
+            #             raise Exception
+            #     except ValueError:
+            #         return "rows "+ str(index+1) + " error : \"Total cycle time\" format error"   
 
     csvfile.close()
     return "Success"
@@ -294,62 +293,61 @@ def upload_2_DB(filename : str, PID : int, usr: str):
                 graph.create(target) 
             else:
                 TID = int(result['TID']) 
-            time2observe = []
-
-            # TODO
-            if(int(row['Mode']) == 1):
-                row['Mode'] = float(row['Total_cycle__time'])
             
-            # mode = totol_cycle_time
-
+            
+            time2observe = []
+            filter2observe = []
 
             for filter in FILTER:
-                if row[filter].lower() == 'y' or row[filter].lower() == 'yes':
-                    row[filter] = 'y'
-                elif row[filter].lower() == 'n' or row[filter].lower() == 'no':
-                    row[filter] = 'n'
-                time2observe.append(float(row[filter+'_+Time']))
+                if(int(row[filter]) > 0)
+                    filter2observe.append(True)
+                else
+                    filter2observe.append(False)
+                time2observe.append(int(row[filter]))
 
 
             # create project target relationship
-            query="MATCH (p:project {PID: $PID}) MATCH (t:target {TID:$TID}) create (p)-[pht:PHaveT {phavetid:$phavetid, JohnsonB:$JohnsonB, JohnsonV:$JohnsonV, JohnsonR:$JohnsonR, SDSSu:$SDSSu, "\
-                "SDSSg:$SDSSg, SDSSr:$SDSSr, SDSSi:$SDSSi, SDSSz:$SDSSz, Time_to_Observe:$time2observe,Remain_Time_to_Observe:$time2observe, Mode:$mode }]->(t) return pht.phavetid"
-            update_project_equipment_observe_list(usr,PID,TID,row['Johnson_B'], row['Johnson_R'], row['Johnson_V'],row['SDSS_u'],row['SDSS_g'],row['SDSS_r'],row['SDSS_i'],row['SDSS_z'])
-            count = graph.run("MATCH ()-[pht:PHaveT]->() return pht.phavetid  order by pht.phavetid DESC limit 1 ").data()
-            if len(count) == 0:
-                cnt = 0
-            else:
-                cnt = count[0]['pht.phavetid']+1
-                result = graph.run(query, PID = PID, TID = TID, phavetid = cnt, JohnsonB = row['Johnson_B'], JohnsonR = row['Johnson_R'], JohnsonV = row['Johnson_B'] \
-                    , SDSSg = row['SDSS_g'], SDSSi = row['SDSS_i'], SDSSr = row['SDSS_r'], SDSSu = row['SDSS_u'], SDSSz = row['SDSS_z'], time2observe= time2observe, mode=row['Mode']).data()
+            create_project_target(usr, PID, TID, filter2observe, time2observe, int(row['Mode']))
+            # query="MATCH (p:project {PID: $PID}) MATCH (t:target {TID:$TID}) create (p)-[pht:PHaveT {phavetid:$phavetid, JohnsonB:$JohnsonB, JohnsonV:$JohnsonV, JohnsonR:$JohnsonR, SDSSu:$SDSSu, SDSSg:$SDSSg, SDSSr:$SDSSr, SDSSi:$SDSSi, SDSSz:$SDSSz, Time_to_Observe:$time2observe, Mode:$mode }]->(t) return pht.phavetid"
+            # update_project_equipment_observe_list(usr,PID,TID,row['Johnson_B'], row['Johnson_R'], row['Johnson_V'],row['SDSS_u'],row['SDSS_g'],row['SDSS_r'],row['SDSS_i'],row['SDSS_z'])
+            # count = graph.run("MATCH ()-[pht:PHaveT]->() return pht.phavetid  order by pht.phavetid DESC limit 1 ").data()
+            # if len(count) == 0:
+            #     cnt = 0
+            # else:
+            #     cnt = count[0]['pht.phavetid']+1
+            #     result = graph.run(query, PID = PID, TID = TID, phavetid = cnt, JohnsonB = row['Johnson_B'], JohnsonR = row['Johnson_R'], JohnsonV = row['Johnson_B'] \
+            #         , SDSSg = row['SDSS_g'], SDSSi = row['SDSS_i'], SDSSr = row['SDSS_r'], SDSSu = row['SDSS_u'], SDSSz = row['SDSS_z'], Time_to_Observe= time2observe, mode=int(row['Mode'])).data()
 
     return 1
 
 
-def time_deduction(PID: int, TID: int, time_record: list):
+def time_deduction(PID: int, TID: int, observe_time: list):
     
     remain = get_remain_time_to_observe(PID,TID)
-    for i in time_record:
-        remain[i] = remain[i] - time_record[i];
+    for i in len(observe_time):
+        remain[i] = remain[i] - observe_time[i]
 
     set_remain_time_to_observe(PID,TID)
 
-    return remain
+    return 1
 
 def set_remain_time_to_observe(PID: int, TID: int, remain: list):
-    query = "match x=(p:project{PID:$pid})-[r:PHaveT]->(t:target{TID:$tid}) set r.Remain_Time_to_Observe={ramain:$remain} return r.Remain_Time_to_Observe as remain" #update new time_to_observe
+    query = "match x=(p:project{PID:$pid})-[r:PHaveT]->(t:target{TID:$tid}) set r.Remain_to_Observe={ramain:$remain} return r.Remain_to_Observe as remain" #update new time_to_observe
     result = graph.run(query, pid = PID, tid = TID).data()
     print(result[0]['remain'])
     return
 
 def get_remain_time_to_observe(PID: int, TID: int):
     
-    query = "match x=(p:project{PID:$pid})-[r:PHaveT]->(t:target{TID:$tid}) return r.Remain_Time_to_Observe as Remain"  #query old time_to_observe
+    query = "match x=(p:project{PID:$pid})-[r:PHaveT]->(t:target{TID:$tid}) return r.Remain_to_Observe as remain"  #query old time_to_observe
     time = graph.run(query, pid = PID, tid = TID).data()
-    return time[0]['Remain']
+    return time[0]['remain']
 
 def get_time_to_observe(PID: int, TID: int):
     
-    query = "match x=(p:project{PID:$pid})-[r:PHaveT]->(t:target{TID:$tid}) return r.Time_to_Observe as Time"  #query origin time_to_observe
+    query = "match x=(p:project{PID:$pid})-[r:PHaveT]->(t:target{TID:$tid}) return r.Time_to_Observe as time"  #query origin time_to_observe
     time = graph.run(query, pid = PID, tid = TID).data()
-    return time[0]['Time']
+    return time[0]['time']
+
+
+
