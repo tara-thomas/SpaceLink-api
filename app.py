@@ -246,7 +246,7 @@ def getTargetInfo():
         session["usr"] = usr
         hid = request.json['PID']
         # project_target = fliter_project_target(usr, int(hid))
-        project_target = get_project_target(usr, int(hid))
+        project_target = get_project_target(int(hid))
         return jsonify(project_targets = project_target)
     else:
         return "login"
@@ -650,7 +650,7 @@ def project_create_post():
     resolution_upper_limit = request.json['resolution_upper_limit']
 
     # required camera type
-    colored = request.json['camera_type1']
+    required_camera_type = request.json['camera_type1']
     # mono = request.json['mono']
     # required_camera_type = [colored, mono]
 
@@ -683,15 +683,18 @@ def project_create_post():
     if request.headers['user']:
         usr = request.headers['user']
         session["usr"] = usr
-        #if request.form.get('button') == 'Create':
-        print('create project')
-        projects = create_project(usr, project_type, title, description, FoV_lower_limit, resolution_upper_limit, colored, required_filter)
-        # if request.form.get('button') == 'Update':
-        #     umanageid = request.form.get('umanageid').strip()
-        #     projects = upadte_project(usr,int(PID),int(umanageid),title,project_type,description,aperture_upper_limit,aperture_lower_limit,FoV_upper_limit,FoV_lower_limit,pixel_scale_upper_limit,pixel_scale_lower_limit,mount_type,camera_type1,camera_type2,JohnsonB,JohnsonR,JohnsonV,SDSSu,SDSSg,SDSSr,SDSSi,SDSSz)
-        # if request.form.get('button') == 'Delete':            
-        #     umanageid = request.form.get('umanageid').strip()
-        #     delete_project(usr,int(PID),int(umanageid))
+        if request.json['method'] == 'create':
+            print('create project')
+            projects = create_project(usr, project_type, title, description, FoV_lower_limit, resolution_upper_limit, required_camera_type, required_filter)
+        if request.json['method'] == 'update':
+            print('update project')
+            umanageid = request.json['umanageid']
+            PID = request.json['PID']
+            projects = update_project(usr, int(PID), int(umanageid), project_type, title, description, FoV_lower_limit, resolution_upper_limit, required_camera_type, required_filter)
+        if request.json['method'] == 'delete':            
+            umanageid = request.json['umanageid']
+            PID = request.json['PID']
+            delete_project(usr, int(PID), int(umanageid))
         # projects = user_manage_projects_get(usr)
         return jsonify(projects = projects.PID)
     else:

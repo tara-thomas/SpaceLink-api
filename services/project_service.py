@@ -193,18 +193,25 @@ def create_project(usr, project_type, title, description, FoV_lower_limit, resol
     return project
 
 # update a project's information
-def upadte_project(usr: str, PID: int, umanageid: int, project_type: str, title: str, description: str,
+def update_project(usr: str, PID: int, umanageid: int, project_type: str, title: str, description: str,
                 FoV_lower_limit: float, resolution_upper_limit: float, required_camera_type: list, required_filter: list)->Optional[Project]:
     print(PID)
     print(umanageid)
     print(usr)
     query ="MATCH rel = (x:user)-[p:Manage {umanageid: $umanageid}]->(m:project) return rel"
-    print(graph.run(query,usr = usr,umanageid = umanageid).data())
+    print(graph.run(query, usr=usr, umanageid=umanageid).data())
+
+    # query ="MATCH (x:user {email:$usr})-[p:Manage {umanageid: $umanageid}]->(m:project)" \
+    #          f"SET m.project_type='{project_type}', m.title='{title}', m.description='{description}'," \
+    #          f"m.FoV_lower_limit='{FoV_lower_limit}', m.resolution_upper_limit='{resolution_upper_limit}'," \
+    #          f"m.required_camera_type='{required_camera_type}', m.required_filter='{required_filter}'" 
+
     query ="MATCH (x:user {email:$usr})-[p:Manage {umanageid: $umanageid}]->(m:project)" \
-             f"SET m.project_type='{project_type}', m.title='{title}', m.description='{description}'," \
-             f"m.FoV_lower_limit='{FoV_lower_limit}', m.resolution_upper_limit='{resolution_upper_limit}'," \
-             f"m.required_camera_type='{required_camera_type}', m.required_filter='{required_filter}'"  
-    project = graph.run(query,usr = usr, umanageid = umanageid)
+            "set m.project_type=$project_type, m.title=$title, m.description=$description," \
+            "m.FoV_lower_limit=$FoV_lower_limit, m.resolution_upper_limit=$resolution_upper_limit," \
+            "m.required_camera_type=$required_camera_type, m.required_filter=$required_filter" 
+
+    project = graph.run(query, usr=usr, umanageid=umanageid, project_type=project_type, title=title, description=description, FoV_lower_limit=FoV_lower_limit, resolution_upper_limit=resolution_upper_limit, required_camera_type=required_camera_type, required_filter=required_filter)
 
     return project   
 
@@ -238,8 +245,30 @@ def user_manage_projects_get(usr: str):
     # return the project user manage 
     query="MATCH (x:user {email:$usr})-[m:Manage]->(p:project) return m.umanageid as umanageid, p.project_type as project_type, p.title as title," \
         "p.PI as PI, p.description as description, p.FoV_lower_limit as FoV_lower_limit, p.resolution_upper_limit as resolution_upper_limit," \
-        "p.required_camera_type as required_camera_type, p.required_filter as required_filter"
+        "p.required_camera_type as camera_type1, p.required_filter as required_filter, p.PID as PID"
     project = graph.run(query,usr = usr).data()
+
+    print(project)
+    for p in project:
+        p['lFilter'] = p['required_filter'][0] if p['required_filter'] is not None else False
+        p['rFilter'] = p['required_filter'][1] if p['required_filter'] is not None else False
+        p['gFilter'] = p['required_filter'][2] if p['required_filter'] is not None else False
+        p['bFilter'] = p['required_filter'][3] if p['required_filter'] is not None else False
+        p['haFilter'] = p['required_filter'][4] if p['required_filter'] is not None else False
+        p['oiiiFilter'] = p['required_filter'][5] if p['required_filter'] is not None else False
+        p['siiFilter'] = p['required_filter'][6] if p['required_filter'] is not None else False
+        p['duoFilter'] = p['required_filter'][7] if p['required_filter'] is not None else False
+        p['multispectraFilter'] = p['required_filter'][8] if p['required_filter'] is not None else False
+        p['JohnsonU'] = p['required_filter'][9] if p['required_filter'] is not None else False
+        p['JohnsonB'] = p['required_filter'][10] if p['required_filter'] is not None else False
+        p['JohnsonV'] = p['required_filter'][11] if p['required_filter'] is not None else False
+        p['JohnsonR'] = p['required_filter'][12] if p['required_filter'] is not None else False
+        p['JohnsonI'] = p['required_filter'][13] if p['required_filter'] is not None else False
+        p['SDSSu'] = p['required_filter'][14] if p['required_filter'] is not None else False
+        p['SDSSg'] = p['required_filter'][15] if p['required_filter'] is not None else False
+        p['SDSSr'] = p['required_filter'][16] if p['required_filter'] is not None else False
+        p['SDSSi'] = p['required_filter'][17] if p['required_filter'] is not None else False
+        p['SDSSz'] = p['required_filter'][18] if p['required_filter'] is not None else False
 
     return project
 
