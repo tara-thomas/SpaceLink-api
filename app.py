@@ -408,13 +408,13 @@ def equipments_get():
 @app.route('/accounts/equipments', methods=['POST'])
 def equipments_post():
     # equipment specs
-    if (request.json['method'] == 'update' or request.json['method'] == 'create') :
+    [if (request.json['method'] == 'update' or request.json['method'] == 'create') :
         telName = request.json['telName'].strip()
         focalLength = request.json['focalLength']
         diameter = request.json['diameter']
 
         # camera specs
-        camName = request.json['camName'].strip()
+        camName = request.json'camName'].strip()
         pixelSize = request.json['pixelSize']
         sensorW = request.json['sensorW']
         sensorH = request.json['sensorH']
@@ -829,7 +829,7 @@ def upload_file():
             print("Not supported file")
 
 @app.route('/project/upload_log', methods=['POST'])
-def upload_file():
+def upload_log():
     usr = session["usr"]
     session["usr"] = usr
     PID = request.json['PID'].strip()
