@@ -260,8 +260,8 @@ def getTargetForProjectInfo():
         usr = request.headers['user']
         session["usr"] = usr
         hid = request.json['PID']
-        project_percentage, project_target = get_progress_percentage(int(hid))
-        return jsonify(project_percentage=project_percentage, project_targets=project_target)
+        _, project_target = get_progress_percentage(int(hid))
+        return jsonify(project_targets=project_target)
     else:
         return "login"
 

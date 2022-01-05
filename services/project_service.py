@@ -270,6 +270,7 @@ def user_manage_projects_get(usr: str):
         p['SDSSr'] = p['required_filter'][16] if p['required_filter'] is not None else False
         p['SDSSi'] = p['required_filter'][17] if p['required_filter'] is not None else False
         p['SDSSz'] = p['required_filter'][18] if p['required_filter'] is not None else False
+        p['percentage'], _ = get_progress_percentage(int(p['PID']))
 
     return project
 
