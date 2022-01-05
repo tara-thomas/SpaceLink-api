@@ -195,24 +195,32 @@ def create_project(usr, project_type, title, description, FoV_lower_limit, resol
     return project
 
 # update a project's information
-def upadte_project(usr: str, PID: int, umanageid: int, project_type: str, title: str, description: str,
+def update_project(usr: str, PID: int, umanageid: int, project_type: str, title: str, description: str,
                 FoV_lower_limit: float, resolution_upper_limit: float, required_camera_type: list, required_filter: list)->Optional[Project]:
     print(PID)
     print(umanageid)
     print(usr)
     query ="MATCH rel = (x:user)-[p:Manage {umanageid: $umanageid}]->(m:project) return rel"
-    print(graph.run(query,usr = usr,umanageid = umanageid).data())
+    print(graph.run(query, usr=usr, umanageid=umanageid).data())
+
+    # query ="MATCH (x:user {email:$usr})-[p:Manage {umanageid: $umanageid}]->(m:project)" \
+    #          f"SET m.project_type='{project_type}', m.title='{title}', m.description='{description}'," \
+    #          f"m.FoV_lower_limit='{FoV_lower_limit}', m.resolution_upper_limit='{resolution_upper_limit}'," \
+    #          f"m.required_camera_type='{required_camera_type}', m.required_filter='{required_filter}'" 
+
     query ="MATCH (x:user {email:$usr})-[p:Manage {umanageid: $umanageid}]->(m:project)" \
-             f"SET m.project_type='{project_type}', m.title='{title}', m.description='{description}'," \
-             f"m.FoV_lower_limit='{FoV_lower_limit}', m.resolution_upper_limit='{resolution_upper_limit}'," \
-             f"m.required_camera_type='{required_camera_type}', m.required_filter='{required_filter}'"  
-    project = graph.run(query,usr = usr, umanageid = umanageid)
+            "set m.project_type=$project_type, m.title=$title, m.description=$description," \
+            "m.FoV_lower_limit=$FoV_lower_limit, m.resolution_upper_limit=$resolution_upper_limit," \
+            "m.required_camera_type=$required_camera_type, m.required_filter=$required_filter" 
+
+    project = graph.run(query, usr=usr, umanageid=umanageid, project_type=project_type, title=title, description=description, FoV_lower_limit=FoV_lower_limit, resolution_upper_limit=resolution_upper_limit, required_camera_type=required_camera_type, required_filter=required_filter).data()
 
     return project   
 
 # delete a project
 def delete_project(usr: str, PID: int, umanageid: int):
-    graph.run("MATCH (x:user {email:$usr})-[m:Manage {umanageid: $umanageid}]->(p:project) DELETE m,p", usr=usr, umanageid = umanageid)
+    graph.run("MATCH (p:project {PID:$PID})-[r:PHaveT]->(t:target) DELETE r", PID=PID)
+    graph.run("MATCH (x:user {email:$usr})-[m:Manage {umanageid: $umanageid}]->(p:project) DELETE m, p", usr=usr, umanageid = umanageid)
 
 # get the project's manager
 def get_project_manager_name(PID: int):
@@ -240,14 +248,36 @@ def user_manage_projects_get(usr: str):
     # return the project user manage 
     query="MATCH (x:user {email:$usr})-[m:Manage]->(p:project) return m.umanageid as umanageid, p.project_type as project_type, p.title as title," \
         "p.PI as PI, p.description as description, p.FoV_lower_limit as FoV_lower_limit, p.resolution_upper_limit as resolution_upper_limit," \
-        "p.required_camera_type as required_camera_type, p.required_filter as required_filter"
+        "p.required_camera_type as camera_type1, p.required_filter as required_filter, p.PID as PID"
     project = graph.run(query,usr = usr).data()
+
+    print(project)
+    for p in project:
+        p['lFilter'] = p['required_filter'][0] if p['required_filter'] is not None else False
+        p['rFilter'] = p['required_filter'][1] if p['required_filter'] is not None else False
+        p['gFilter'] = p['required_filter'][2] if p['required_filter'] is not None else False
+        p['bFilter'] = p['required_filter'][3] if p['required_filter'] is not None else False
+        p['haFilter'] = p['required_filter'][4] if p['required_filter'] is not None else False
+        p['oiiiFilter'] = p['required_filter'][5] if p['required_filter'] is not None else False
+        p['siiFilter'] = p['required_filter'][6] if p['required_filter'] is not None else False
+        p['duoFilter'] = p['required_filter'][7] if p['required_filter'] is not None else False
+        p['multispectraFilter'] = p['required_filter'][8] if p['required_filter'] is not None else False
+        p['JohnsonU'] = p['required_filter'][9] if p['required_filter'] is not None else False
+        p['JohnsonB'] = p['required_filter'][10] if p['required_filter'] is not None else False
+        p['JohnsonV'] = p['required_filter'][11] if p['required_filter'] is not None else False
+        p['JohnsonR'] = p['required_filter'][12] if p['required_filter'] is not None else False
+        p['JohnsonI'] = p['required_filter'][13] if p['required_filter'] is not None else False
+        p['SDSSu'] = p['required_filter'][14] if p['required_filter'] is not None else False
+        p['SDSSg'] = p['required_filter'][15] if p['required_filter'] is not None else False
+        p['SDSSr'] = p['required_filter'][16] if p['required_filter'] is not None else False
+        p['SDSSi'] = p['required_filter'][17] if p['required_filter'] is not None else False
+        p['SDSSz'] = p['required_filter'][18] if p['required_filter'] is not None else False
 
     return project
 
 # add a new target to project
 def create_project_target(usr: str, PID: int, TID: int, filter2observe: list, time2observe: list, mode: int):
-    query="MATCH (p:project {PID: $PID}) MATCH (t:target {TID:$TID}) create (p)-[pht:PHaveT {phavetid:$phavetid, Filter_to_Observe:$filter2observe, Time_to_Observe:$time2observe, Remain_to_Observe:$remain2observe, Mode:$mode}]->(t) return pht.phavetid"
+    query="MATCH (p:project {PID:$PID}) MATCH (t:target {TID:$TID}) create (p)-[pht:PHaveT {phavetid:$phavetid, Filter_to_Observe:$filter2observe, Time_to_Observe:$time2observe, Remain_to_Observe:$remain2observe, Mode:$mode}]->(t) return pht.phavetid"
     # only show the observable targets of that equipment
     # update_project_equipment_observe_list(usr, PID, TID, JohnsonB, JohnsonR, JohnsonV, SDSSu, SDSSg, SDSSr, SDSSi, SDSSz)
     count = graph.run("MATCH ()-[pht:PHaveT]->() return pht.phavetid  order by pht.phavetid DESC limit 1 ").data()
@@ -261,20 +291,21 @@ def create_project_target(usr: str, PID: int, TID: int, filter2observe: list, ti
 
 # 1221 get project / project target progress (percentage)
 def get_progress_percentage(PID: int):
-    query = "MATCH (p:project {PID: $PID})-[r:PhaveT]->(t:target) return r.Time_to_Observe as t2o, r.Remain_to_Observe as r2o, t.TID as TID"
+    query = "MATCH (p:project {PID:$PID})-[r:PHaveT]->(t:target) return r.Time_to_Observe as t2o, r.Remain_to_Observe as r2o, t.TID as TID, t.name as name, t.latitude as lat, t.longitude as lon"
     target_progress = graph.run(query, PID=PID).data()
+
     # calculate entire project progress
     project_total_t2o = 0
     project_total_r2o = 0
     target_progress_percentage = []
     for t in target_progress:
-        t_t2o = t['t2o']
-        t_r2o = t['r2o']
+        t_t2o = sum(t['t2o'])
+        t_r2o = sum(t['r2o'])
         t_TID = t['TID']
         t_percent = (t_t2o-t_r2o) / t_t2o
         project_total_t2o += t_t2o
         project_total_r2o += t_r2o
-        target_progress_percentage.append({'TID': t_TID, 'percentage': t_percent})
+        target_progress_percentage.append({'TID': t_TID, 'name': t['name'], 'lat': t['lat'], 'lon': t['lon'], 'percentage': t_percent})
     
     project_progress_percentage = (project_total_t2o-project_total_r2o) / project_total_t2o
 

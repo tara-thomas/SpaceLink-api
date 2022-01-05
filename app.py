@@ -188,7 +188,9 @@ def manageProject():
         usr = request.headers['user']
         session["usr"] = usr
         projects = user_manage_projects_get(usr)
-        print(projects)
+        # PID = request.json['PID']
+        # project_progress_percentage, target_progress_percentage = get_progress_percentage(int(PID))
+        # print(project_progress_percentage, target_progress_percentage)
         return {'projects': projects}
         #return render_template("accounts/manageprojects.html", user_profile=user_profile, projects = projects)
     else:
@@ -244,8 +246,8 @@ def getTargetInfo():
         session["usr"] = usr
         hid = request.json['PID']
         # project_target = fliter_project_target(usr, int(hid))
-        project_target = get_project_target(usr, int(hid))
-        return jsonify(project_targets = project_target)
+        project_target = get_project_target(int(hid))
+        return jsonify(project_targets=project_target)
     else:
         return "login"
         # return redirect(url_for("login_get"))
@@ -255,9 +257,9 @@ def getTargetForProjectInfo():
     if request.headers['user']:
         usr = request.headers['user']
         session["usr"] = usr
-        hid = request.json['PID'].strip()
-        project_target = get_project_target(int(hid))
-        return jsonify(project_targets = project_target)
+        hid = request.json['PID']
+        project_percentage, project_target = get_progress_percentage(int(hid))
+        return jsonify(project_percentage=project_percentage, project_targets=project_target)
     else:
         return "login"
 
@@ -410,14 +412,14 @@ def equipments_post():
     # equipment specs
     [if (request.json['method'] == 'update' or request.json['method'] == 'create') :
         telName = request.json['telName'].strip()
-        focalLength = request.json['focalLength']
-        diameter = request.json['diameter']
+        focalLength = int(request.json['focalLength'])
+        diameter = int(request.json['diameter'])
 
         # camera specs
-        camName = request.json'camName'].strip()
-        pixelSize = request.json['pixelSize']
-        sensorW = request.json['sensorW']
-        sensorH = request.json['sensorH']
+        camName = request.json['camName'].strip()
+        pixelSize = int(request.json['pixelSize'])
+        sensorW = int(request.json['sensorW'])
+        sensorH = int(request.json['sensorH'])
         camera_type1  = request.json['camera_type1'].strip()
         camera_type2 = request.json['camera_type2'].strip()
 
@@ -455,7 +457,7 @@ def equipments_post():
 
         # barlow / focal reducer
         barlowName = request.json['barlowName'].strip()
-        magnification = request.json['magnification']
+        magnification = int(request.json['magnification'])
 
         # calculated specs (need to save focalRatio, fovDeg, and resolution)
         focalRatio = focalLength * magnification / diameter
@@ -481,7 +483,7 @@ def equipments_post():
 
         if request.json['method'] == 'delete':            
             hid = request.json['uhaveid']
-            delete_user_equipment(usr,int(hid))
+            delete_user_equipment(usr, int(hid))
             # delete user's equipment in postgresSQL
             # postgres_delete_user_equipments(int(hid))
 
@@ -648,7 +650,7 @@ def project_create_post():
     resolution_upper_limit = request.json['resolution_upper_limit']
 
     # required camera type
-    colored = request.json['camera_type1']
+    required_camera_type = request.json['camera_type1']
     # mono = request.json['mono']
     # required_camera_type = [colored, mono]
 
@@ -681,17 +683,22 @@ def project_create_post():
     if request.headers['user']:
         usr = request.headers['user']
         session["usr"] = usr
-        #if request.form.get('button') == 'Create':
-        print('create project')
-        projects = create_project(usr, project_type, title, description, FoV_lower_limit, resolution_upper_limit, colored, required_filter)
-        # if request.form.get('button') == 'Update':
-        #     umanageid = request.form.get('umanageid').strip()
-        #     projects = upadte_project(usr,int(PID),int(umanageid),title,project_type,description,aperture_upper_limit,aperture_lower_limit,FoV_upper_limit,FoV_lower_limit,pixel_scale_upper_limit,pixel_scale_lower_limit,mount_type,camera_type1,camera_type2,JohnsonB,JohnsonR,JohnsonV,SDSSu,SDSSg,SDSSr,SDSSi,SDSSz)
-        # if request.form.get('button') == 'Delete':            
-        #     umanageid = request.form.get('umanageid').strip()
-        #     delete_project(usr,int(PID),int(umanageid))
+        if request.json['method'] == 'create':
+            print('create project')
+            projects = create_project(usr, project_type, title, description, FoV_lower_limit, resolution_upper_limit, required_camera_type, required_filter)
+        if request.json['method'] == 'update':
+            print('update project')
+            umanageid = request.json['umanageid']
+            PID = request.json['PID']
+            projects = update_project(usr, int(PID), int(umanageid), project_type, title, description, FoV_lower_limit, resolution_upper_limit, required_camera_type, required_filter)
+            return "updated"
+        if request.json['method'] == 'delete':            
+            umanageid = request.json['umanageid']
+            PID = request.json['PID']
+            delete_project(usr, int(PID), int(umanageid))
+            return "deleted"
         # projects = user_manage_projects_get(usr)
-        return jsonify(projects = projects.PID)
+        return jsonify(projects=projects.PID)
     else:
         return "login"
         # return redirect(url_for("login_get"))
@@ -784,8 +791,8 @@ def allowed_file(filename: str):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-@app.route('/project/upload_target_from_file', methods=['POST'])
-def upload_file():
+@app.route('/project/uploadTarget', methods=['POST'])
+def upload_target():
     usr = session["usr"]
     session["usr"] = usr
     PID = request.json['PID'].strip()
@@ -828,7 +835,7 @@ def upload_file():
         else :
             print("Not supported file")
 
-@app.route('/project/upload_log', methods=['POST'])
+@app.route('/project/uploadLog', methods=['POST'])
 def upload_log():
     usr = session["usr"]
     session["usr"] = usr
