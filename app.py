@@ -410,7 +410,7 @@ def equipments_get():
 @app.route('/accounts/equipments', methods=['POST'])
 def equipments_post():
     # equipment specs
-    [if (request.json['method'] == 'update' or request.json['method'] == 'create') :
+    if (request.json['method'] == 'update' or request.json['method'] == 'create') :
         telName = request.json['telName'].strip()
         focalLength = int(request.json['focalLength'])
         diameter = int(request.json['diameter'])

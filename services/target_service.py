@@ -299,11 +299,7 @@ def upload_2_DB(filename : str, PID : int, usr: str):
             filter2observe = []
 
             for filter in FILTER:
-<<<<<<< HEAD
-                if(int(row[filter]) > 0) :
-=======
                 if(int(row[filter]) > 0):
->>>>>>> origin/main
                     filter2observe.append(True)
                 else:
                     filter2observe.append(False)

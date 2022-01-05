@@ -57,11 +57,7 @@ def check_log_format(filename: str):
                 if row[filter].isdigit() :
                     if int(row[filter]) < 0:
                         return "rows "+ str(index+1) + " error : \"" + filter + " Time\" format error"   
-<<<<<<< HEAD
-                else : 
-=======
                 else:
->>>>>>> origin/main
                     return "rows "+ str(index+1) + " error : " + filter + " format error. "      
 
 
@@ -95,11 +91,8 @@ def update_observe_time(filename : str, PID : int, usr: str):
         for filter in FILTER:
             observeTime.append(int(row[filter]))
 
-<<<<<<< HEAD
-=======
         time_deduction(PID, TID, observeTime)
 
->>>>>>> origin/main
     return 1
     
 
