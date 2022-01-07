@@ -356,7 +356,7 @@ def auto_join(usr: str, PID: int, selected_eid_list: list):
     # check if already joined the project 
     query = "MATCH (x:user {email:$usr})-[r]->(p:project{PID:$PID})  return exists((x)-[:Member_of]->(p)) as flag"
     exist = graph.run(query, usr=usr, PID=PID).data()
-    if(exist[0]['flag']):
+    if exist and exist[0]['flag']:
         print("exist")
         return
     
