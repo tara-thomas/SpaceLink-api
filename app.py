@@ -165,8 +165,9 @@ def joinProject():
         session["usr"] = usr
         PID = request.json['PID']
         # get the equipment user selected
-        selected_equipment = request.json['selected_equipment']
-        auto_join(usr, int(PID), selected_equipment)
+        # selected_equipment = request.json['selected_equipment']
+        selected_eid, selected_equipment = get_qualified_equipment(usr, PID)
+        auto_join(usr, int(PID), selected_eid)
         return {"Success": "Successfully joined the project."}
     else:
         return "login"
@@ -279,8 +280,8 @@ def getSchedule():
         print("UHAVEID: ", uhaveid, "USER: ", usr)
         UID = get_uid(usr)
         EID = get_eid(uhaveid)
-        return jsonify(query_schedule(UID, EID, str(date.today())))
-        # return jsonify(generate_default_schedule(usr, uhaveid))
+        # return jsonify(query_schedule(UID, EID, str(date.today())))
+        return jsonify(generate_default_schedule(usr, uhaveid))
     else:
         return "login"
 

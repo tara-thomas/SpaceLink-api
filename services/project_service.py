@@ -31,10 +31,12 @@ def get_project_detail(PID: int):
     #get the project's detail
     query = "MATCH (n:project {PID: $PID})" \
     "return n.project_type as project_type, n.title as title, n.PI as PI, n.description as description, n.FoV_lower_limit as FoV_lower_limit, n.resolution_upper_limit as resolution_upper_limit, " \
-    "n.required_camera_type as required_camera_type, n.required_filter as filters, n.PID as PID"
+    "n.required_camera_type as required_camera_type, n.required_filter as required_filter, n.PID as PID"
     project = graph.run(query, PID = PID).data()
 
     for p in project:
+        for i, filter in enumerate(FILTER):
+            p[filter] = p['required_filter'][i] if p['required_filter'] is not None else False
         p['percentage'], _ = get_progress_percentage(int(p['PID']))
 
     return project
@@ -236,7 +238,9 @@ def update_project(usr: str, PID: int, umanageid: int, project_type: str, title:
 # delete a project
 def delete_project(usr: str, PID: int, umanageid: int):
     graph.run("MATCH (p:project {PID:$PID})-[r:PHaveT]->(t:target) DELETE r", PID=PID)
-    graph.run("MATCH (x:user {email:$usr})-[m:Manage {umanageid: $umanageid}]->(p:project) DELETE m, p", usr=usr, umanageid = umanageid)
+    graph.run("MATCH (p:project {PID:$PID})-[r:PhaveE]->(e:equipments) DELETE r", PID=PID)
+    graph.run("MATCH (n:user {email:$usr})-[r:Member_of]->(p:project {PID:$PID}) DELETE r", usr=usr, PID=PID)
+    graph.run("MATCH (x:user {email:$usr})-[m:Manage {umanageid: $umanageid}]->(p:project) DELETE m, p", usr=usr, umanageid=umanageid)
 
 # get the project's manager
 def get_project_manager_name(PID: int):
@@ -326,24 +330,26 @@ def get_progress_percentage(PID: int):
 
 # 1214 return the qualified equipments when join a project
 def get_qualified_equipment(usr: str, PID: int):
-    query_eid = "MATCH (x:user{email:$usr})-[r:UhaveE]->(e:equipments) RETURN e.EID as EID, e.telName as telName, e.filterArray as filterArray, r.declination_limit as declination"
+    query_eid = "MATCH (x:user{email:$usr})-[r:UhaveE]->(e:equipments) RETURN e.EID as EID, e.telName as telName, e.fovDeg as fovDeg, e.resolution as resolution, e.filterArray as filterArray, e.camera_type1 as camera_type1, r.declination_limit as declination"
     equipment = graph.run(query_eid, usr=usr).data()
     # project_target = graph.run("MATCH (p:project {PID: $PID})-[pht:PHaveT]->(t:target) return pht.filter2observe as filter2observe, t.TID as TID, t.name as name, t.latitude as dec", PID=PID).data()
     project = graph.run("MATCH (p:project {PID: $PID}) return p.FoV_lower_limit as FoV_lower_limit, p.resolution_upper_limit as resolution_upper_limit, p.required_camera_type as required_camera_type, p.required_filter as required_filter", PID=PID).data()
     
-    qualified_eid_list = []
+    qualified_eid_list, qualified_equipment_list = [], []
     for i in range(len(equipment)):
-        if float(equipment[i]['fovDeg']) < project['FoV_lower_limit']: continue
-        if float(equipment[i]['resolution']) > project['resolution_upper_limit']: continue
+        if float(equipment[i]['fovDeg']) < project[0]['FoV_lower_limit']: continue
+        if float(equipment[i]['resolution']) > project[0]['resolution_upper_limit']: continue
         # equipment_camera_type = 0 if equipment[i]['camera_type1'] == 'colored' else 1
-        if project['required_camera_type'] != equipment[i]['camera_type1']: continue
+        if project[0]['required_camera_type'] != equipment[i]['camera_type1']: continue
         # if no filter is required
-        if sum(project['required_filter']) == 0:
-            qualified_eid_list.append({'EID': int(equipment[i]['EID']), 'telName': equipment[i]['telName']})
-        elif any(equipment[i]['filterArray'][k] + project['required_filter'][k] == 2 for k in range(19)):
-            qualified_eid_list.append({'EID': int(equipment[i]['EID']), 'telName': equipment[i]['telName']})
+        if sum(project[0]['required_filter']) == 0:
+            qualified_equipment_list.append({'EID': int(equipment[i]['EID']), 'telName': equipment[i]['telName']})
+            qualified_eid_list.append(int(equipment[i]['EID']))
+        elif any(equipment[i]['filterArray'][k] + project[0]['required_filter'][k] == 2 for k in range(19)):
+            qualified_equipment_list.append({'EID': int(equipment[i]['EID']), 'telName': equipment[i]['telName']})
+            qualified_eid_list.append(int(equipment[i]['EID']))
 
-    return qualified_eid_list
+    return qualified_eid_list, qualified_equipment_list
 
 # this function is uesd for test, the user will auto join the project (1214 modified)
 def auto_join(usr: str, PID: int, selected_eid_list: list):
