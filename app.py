@@ -50,23 +50,23 @@ def register_post():
 
     # Check for blank fields in the registration form
     if not username or not name or not email or not affiliation or not title  or not country or not password or not confirm:
-        flash("Please populate all the registration fields"+country, "error")
-        return {'username': username, 'name': name, 'email': email, 'affiliation': affiliation, 'title': title, 'country': country, 'password': password, 'confirm': confirm}
+        return "Please populate all the registration fields"+country, 400
+        #return {'username': username, 'name': name, 'email': email, 'affiliation': affiliation, 'title': title, 'country': country, 'password': password, 'confirm': confirm}
 
     # Check if password and confirm match
     if password != confirm:
-        flash("Passwords do not match")
-        return {'username': username, 'name': name, 'email': email, 'affiliation': affiliation, 'title': title, 'country': country, 'password': password, 'confirm': confirm}
+        return "Passwords do not match", 400
+        # return {'username': username, 'name': name, 'email': email, 'affiliation': affiliation, 'title': title, 'country': country, 'password': password, 'confirm': confirm}
 
     # Create the user
     user = create_user(username, name, email, affiliation, title, country, password)
     # Verify another user with the same email does not exist
     if not user:
-        flash("A user with that email already exists.")
-        return {'username': username, 'name': name, 'email': email, 'affiliation': affiliation, 'title': title, 'country': country, 'password': password, 'confirm': confirm}
+        return "A user with that email already exists.", 400
+        # return {'username': username, 'name': name, 'email': email, 'affiliation': affiliation, 'title': title, 'country': country, 'password': password, 'confirm': confirm}
 
     # return redirect(url_for("dashboard_get"))
-    return "It worked!"
+    return "It worked!", 200
 
 '''
 @app.route('/accounts/login', methods=['GET'])
