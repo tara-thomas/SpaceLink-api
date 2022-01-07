@@ -29,15 +29,15 @@ def get_target():
 # get a target's information
 def get_targetDetails(targetName: str):
     query = "MATCH(t:target{name:$name}) return t.longitude as ra, t.latitude as dec, t.TID as TID"
-
     targetDetails = graph.run(query, name=targetName).data()
+    
     return targetDetails
 
 # get a target's node
 def get_targetNode(targetName: str):
     query = "MATCH(t:target{name:$name}) return t"
-
     targetNode = graph.run(query, name=targetName).data()
+    
     return targetNode
 
 # search a target by keyword
@@ -45,6 +45,7 @@ def search_target(text: str):
     query= "MATCH (t:target) where t.name =~ $text return t.name as name order by t.name "
     target = graph.run(query, text = text).data()
     print(target)
+
     return target
 
 # 1020 create target if it doesn't exist

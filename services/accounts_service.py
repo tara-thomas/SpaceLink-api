@@ -256,15 +256,15 @@ def get_eid(uhaveid):
 
     return eid
 
-def update_equipment_project_priority(usr: str, eid : int, project_priority: list):
+def update_equipment_project_priority(usr: str, eid: int, project_priority: list):
     print(project_priority)
     query = "MATCH x = (e:equipments{EID:$eid}) set e.project_priority = $project_priority"
     result = graph.run(query, eid = eid, project_priority = project_priority)
 
-def get_equipment_project_priority(usr:str,eid : int):
+def get_equipment_project_priority(usr: str, eid:int):
     query = "MATCH (x:user{email:$usr})-[h:UhaveE]->(e:equipments{EID:$eid}) return e.project_priority as priority"
     result = graph.run(query,usr = usr,eid = eid).data()
-    print(eid, " Result: ", result)
+    print(eid, "Result:", result)
     if(len(result) == 0 ): 
         return None
     else:
