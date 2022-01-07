@@ -53,23 +53,23 @@ def register_post():
 
     # Check for blank fields in the registration form
     if not username or not name or not email or not affiliation or not title  or not country or not password or not confirm:
-        flash("Please populate all the registration fields"+country, "error")
-        return {'username': username, 'name': name, 'email': email, 'affiliation': affiliation, 'title': title, 'country': country, 'password': password, 'confirm': confirm}
+        return "Please populate all the registration fields"+country, 400
+        #return {'username': username, 'name': name, 'email': email, 'affiliation': affiliation, 'title': title, 'country': country, 'password': password, 'confirm': confirm}
 
     # Check if password and confirm match
     if password != confirm:
-        flash("Passwords do not match")
-        return {'username': username, 'name': name, 'email': email, 'affiliation': affiliation, 'title': title, 'country': country, 'password': password, 'confirm': confirm}
+        return "Passwords do not match", 400
+        # return {'username': username, 'name': name, 'email': email, 'affiliation': affiliation, 'title': title, 'country': country, 'password': password, 'confirm': confirm}
 
     # Create the user
     user = create_user(username, name, email, affiliation, title, country, password)
     # Verify another user with the same email does not exist
     if not user:
-        flash("A user with that email already exists.")
-        return {'username': username, 'name': name, 'email': email, 'affiliation': affiliation, 'title': title, 'country': country, 'password': password, 'confirm': confirm}
+        return "A user with that email already exists.", 400
+        # return {'username': username, 'name': name, 'email': email, 'affiliation': affiliation, 'title': title, 'country': country, 'password': password, 'confirm': confirm}
 
     # return redirect(url_for("dashboard_get"))
-    return "It worked!"
+    return "It worked!", 200
 
 '''
 @app.route('/accounts/login', methods=['GET'])
@@ -193,14 +193,10 @@ def manageProject():
         usr = request.headers['user']
         session["usr"] = usr
         projects = user_manage_projects_get(usr)
-        # PID = request.json['PID']
-        # project_progress_percentage, target_progress_percentage = get_progress_percentage(int(PID))
-        # print(project_progress_percentage, target_progress_percentage)
+
         return {'projects': projects}
-        #return render_template("accounts/manageprojects.html", user_profile=user_profile, projects = projects)
     else:
         return "login"
-        #return redirect(url_for("login_get"))
 
 # 1019 for users to rank their joined projects
 @app.route('/accounts/rankedProjects', methods=['GET'])
@@ -693,13 +689,20 @@ def addTarget():
     for filter in FILTER:
         filter2observe.append(request.json[filter])
         time2observe.append(int(request.json[filter.replace("Filter", "")+"Min"]) if request.json[filter] else 0)
-    
-    mode = request.json['mode'] # 0: general, 1: cycle
+    mode = request.json['mode'] # 0: staring, 1: cycle
+
     if request.headers['user']:
         usr = request.headers['user']
         session["usr"] = usr
-        target  = create_project_target(usr, int(PID), int(TID), filter2observe, time2observe, int(mode))
-        return jsonify(target = target)
+        if request.json['method'] == 'create':
+            target  = create_project_target(usr, int(PID), int(TID), filter2observe, time2observe, int(mode))
+            return jsonify(target = target)
+        if request.json['method'] == 'update':
+            target  = update_project_target(int(PID), int(TID), filter2observe, time2observe, int(mode))
+            return jsonify(target = target)
+        if request.json['method'] == 'delete':
+            delete_project_target(int(PID), int(TID))
+            return "deleted"
     else:
         return "login"
 

@@ -44,7 +44,8 @@ def get_project(usr: str)->Optional[Project]:
     equipment = graph.run(query, usr = usr).data()
 
     # get all the currenet projects in DB
-    query = "MATCH (n:project) return n.FoV_lower_limit as FoV_lower_limit, n.resolution_upper_limit as resolution_upper_limit," \
+    query = "MATCH (n:project) return n.project_type as project_type, n.title as title, n.description as description," \
+        "n.FoV_lower_limit as FoV_lower_limit, n.resolution_upper_limit as resolution_upper_limit," \
         "n.required_camera_type as required_camera_type, n.required_filter as required_filter, n.PID as PID order by PID" 
     project = graph.run(query).data()
 
@@ -77,6 +78,10 @@ def get_project(usr: str)->Optional[Project]:
                 result.append(project[j]) 
 
     result = get_project_filter(usr, result)
+    for p in result:
+        for i, filter in enumerate(FILTER):
+            p[filter] = p['required_filter'][i] if p['required_filter'] is not None else False
+        p['percentage'], _ = get_progress_percentage(int(p['PID']))
 
     return result
 
@@ -156,6 +161,8 @@ def get_project_target(pid: int):
     # consider to delete the targets that have reached the goal of observe time
     query = "MATCH x=(p:project{PID:$pid})-[r:PHaveT]->(t:target) RETURN t.name as name, t.latitude as lat, t.longitude as lon, t.TID as TID"
     project_target = graph.run(query, pid=pid).data()
+    for target in project_target:
+        target['ra'], target['dec'] = degree2hms(target['lon'], target['lat'], _round=True)
 
     return project_target
 
@@ -200,16 +207,11 @@ def create_project(usr, project_type, title, description, FoV_lower_limit, resol
 # update a project's information
 def update_project(usr: str, PID: int, umanageid: int, project_type: str, title: str, description: str,
                 FoV_lower_limit: float, resolution_upper_limit: float, required_camera_type: list, required_filter: list)->Optional[Project]:
-    print(PID)
-    print(umanageid)
-    print(usr)
+    # print(PID)
+    # print(umanageid)
+    # print(usr)
     query ="MATCH rel = (x:user)-[p:Manage {umanageid: $umanageid}]->(m:project) return rel"
-    print(graph.run(query, usr=usr, umanageid=umanageid).data())
-
-    # query ="MATCH (x:user {email:$usr})-[p:Manage {umanageid: $umanageid}]->(m:project)" \
-    #          f"SET m.project_type='{project_type}', m.title='{title}', m.description='{description}'," \
-    #          f"m.FoV_lower_limit='{FoV_lower_limit}', m.resolution_upper_limit='{resolution_upper_limit}'," \
-    #          f"m.required_camera_type='{required_camera_type}', m.required_filter='{required_filter}'" 
+    # print(graph.run(query, usr=usr, umanageid=umanageid).data())
 
     query ="MATCH (x:user {email:$usr})-[p:Manage {umanageid: $umanageid}]->(m:project)" \
             "set m.project_type=$project_type, m.title=$title, m.description=$description," \
@@ -259,7 +261,7 @@ def user_manage_projects_get(usr: str):
         for i, filter in enumerate(FILTER):
             p[filter] = p['required_filter'][i] if p['required_filter'] is not None else False
         p['percentage'], _ = get_progress_percentage(int(p['PID']))
-
+        
     return project
 
 # add a new target to project
@@ -273,8 +275,21 @@ def create_project_target(usr: str, PID: int, TID: int, filter2observe: list, ti
     else:
         cnt = count[0]['pht.phavetid']+1
     result = graph.run(query, PID = PID, TID = TID, phavetid = cnt, filter2observe = filter2observe, time2observe = time2observe, remain2observe = time2observe, mode = mode).data()
-    
+    print("RESULT", result)
+
     return result
+
+# 0107 edit project target
+def update_project_target(PID: int, TID: int, filter2observe: list, time2observe: list, mode: int):
+    query ="MATCH (p:project {PID:$PID})-[r:PHaveT]->(t:target {TID: $TID})" \
+            "set r.Filter_to_Observe=$filter2observe, r.Time_to_Observe=$time2observe, r.Mode=$mode"
+    result = graph.run(query, PID=PID, TID=TID, filter2observe=filter2observe, time2observe=time2observe, mode=mode).data()
+
+    return result
+
+# 0107 delete project target
+def delete_project_target(PID: int, TID: int):
+    graph.run("MATCH (p:project {PID:$PID})-[r:PHaveT]->(t:target {TID: $TID}) DELETE r", PID=PID, TID=TID)
 
 # 1221 get project / project target progress (percentage)
 def get_progress_percentage(PID: int):
