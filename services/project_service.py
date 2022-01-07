@@ -4,6 +4,7 @@ from passlib.handlers.sha2_crypt import sha512_crypt as crypto
 from services.classes import User, Target, Equipments, Project, Schedule
 from datetime import datetime, timedelta
 from services.accounts_service import get_equipment_project_priority, update_equipment_project_priority
+from services.utils import *
 
 import astro.declination_limit_of_location as declination
 import astro.astroplan_calculations as schedule
@@ -12,6 +13,10 @@ import ephem
 import random
 
 graph = db_auth()
+
+FILTER = ['lFilter','rFilter','gFilter','bFilter','haFilter','oiiiFilter','siiFilter','duoFilter','multispectraFilter', \
+            'JohnsonU','JohnsonB','JohnsonV','JohnsonR','JohnsonI',\
+            'SDSSu','SDSSg','SDSSr','SDSSi','SDSSz']
 
 def get_project_info(pid_list : list):
     project = []
@@ -251,25 +256,8 @@ def user_manage_projects_get(usr: str):
 
     print(project)
     for p in project:
-        p['lFilter'] = p['required_filter'][0] if p['required_filter'] is not None else False
-        p['rFilter'] = p['required_filter'][1] if p['required_filter'] is not None else False
-        p['gFilter'] = p['required_filter'][2] if p['required_filter'] is not None else False
-        p['bFilter'] = p['required_filter'][3] if p['required_filter'] is not None else False
-        p['haFilter'] = p['required_filter'][4] if p['required_filter'] is not None else False
-        p['oiiiFilter'] = p['required_filter'][5] if p['required_filter'] is not None else False
-        p['siiFilter'] = p['required_filter'][6] if p['required_filter'] is not None else False
-        p['duoFilter'] = p['required_filter'][7] if p['required_filter'] is not None else False
-        p['multispectraFilter'] = p['required_filter'][8] if p['required_filter'] is not None else False
-        p['JohnsonU'] = p['required_filter'][9] if p['required_filter'] is not None else False
-        p['JohnsonB'] = p['required_filter'][10] if p['required_filter'] is not None else False
-        p['JohnsonV'] = p['required_filter'][11] if p['required_filter'] is not None else False
-        p['JohnsonR'] = p['required_filter'][12] if p['required_filter'] is not None else False
-        p['JohnsonI'] = p['required_filter'][13] if p['required_filter'] is not None else False
-        p['SDSSu'] = p['required_filter'][14] if p['required_filter'] is not None else False
-        p['SDSSg'] = p['required_filter'][15] if p['required_filter'] is not None else False
-        p['SDSSr'] = p['required_filter'][16] if p['required_filter'] is not None else False
-        p['SDSSi'] = p['required_filter'][17] if p['required_filter'] is not None else False
-        p['SDSSz'] = p['required_filter'][18] if p['required_filter'] is not None else False
+        for i, filter in enumerate(FILTER):
+            p[filter] = p['required_filter'][i] if p['required_filter'] is not None else False
         p['percentage'], _ = get_progress_percentage(int(p['PID']))
 
     return project
@@ -301,12 +289,13 @@ def get_progress_percentage(PID: int):
         t_t2o = sum(t['t2o'])
         t_r2o = sum(t['r2o'])
         t_TID = t['TID']
-        t_percent = (t_t2o-t_r2o) / t_t2o
+        t_percent = (t_t2o-t_r2o) / t_t2o if t_t2o is not 0 else 100
         project_total_t2o += t_t2o
         project_total_r2o += t_r2o
-        target_progress_percentage.append({'TID': t_TID, 'name': t['name'], 'lat': t['lat'], 'lon': t['lon'], 'percentage': t_percent})
-    
-    project_progress_percentage = (project_total_t2o-project_total_r2o) / project_total_t2o
+        hms, dms = degree2hms(t['lon'], t['lat'], _round=True)
+        target_progress_percentage.append({'TID': t_TID, 'name': t['name'], 'lat': "DEC: " + str(dms), 'lon': "RA: " + str(hms), 'percentage': t_percent})
+
+    project_progress_percentage = (project_total_t2o-project_total_r2o) / project_total_t2o if project_total_t2o is not 0 else 100
 
     return project_progress_percentage, target_progress_percentage
 

@@ -23,6 +23,9 @@ CORS(app)
 
 graph = db_auth() #connect to neo4j
 
+FILTER = ['lFilter','rFilter','gFilter','bFilter','haFilter','oiiiFilter','siiFilter','duoFilter','multispectraFilter', \
+            'JohnsonU','JohnsonB','JohnsonV','JohnsonR','JohnsonI',\
+            'SDSSu','SDSSg','SDSSr','SDSSi','SDSSz']
 
 
 @app.route('/', methods=['GET'])
@@ -281,8 +284,8 @@ def getSchedule():
         print("UHAVEID: ", uhaveid, "USER: ", usr)
         UID = get_uid(usr)
         EID = get_eid(uhaveid)
-        return jsonify(query_schedule(UID,EID,str(date.today())))
-        #return jsonify(generate_default_schedule(usr, uhaveid))
+        return jsonify(query_schedule(UID, EID, str(date.today())))
+        # return jsonify(generate_default_schedule(usr, uhaveid))
     else:
         return "login"
 
@@ -427,27 +430,9 @@ def equipments_post():
 
         # filters
         if request.json['method'] == 'create':
-            lFilter = request.json['lFilter']
-            rFilter = request.json['rFilter']
-            gFilter = request.json['gFilter']
-            bFilter = request.json['bFilter']
-            haFilter = request.json['haFilter']
-            oiiiFilter = request.json['oiiiFilter']
-            siiFilter = request.json['siiFilter']
-            duoFilter = request.json['duoFilter']
-            multispectraFilter = request.json['multispectraFilter']
-            JohnsonU = request.json['JohnsonU']
-            JohnsonB = request.json['JohnsonB']
-            JohnsonV = request.json['JohnsonV']
-            JohnsonR = request.json['JohnsonR']
-            JohnsonI = request.json['JohnsonI']
-            SDSSu = request.json['SDSSu']
-            SDSSg = request.json['SDSSg']
-            SDSSr = request.json['SDSSr']
-            SDSSi = request.json['SDSSi']
-            SDSSz = request.json['SDSSz']
-            filterArray = [lFilter, rFilter, gFilter, bFilter, haFilter, oiiiFilter, siiFilter, duoFilter, multispectraFilter,
-                            JohnsonU, JohnsonB, JohnsonV, JohnsonR, JohnsonI, SDSSu, SDSSg, SDSSr, SDSSi, SDSSz]
+            filterArray = []
+            for filter in FILTER:
+                filterArray.append(request.json[filter])
         
         if request.json['method'] == 'update':
             filterArray = request.json['filterArray']
@@ -657,28 +642,9 @@ def project_create_post():
     # required_camera_type = [colored, mono]
 
     # required filters
-    lFilter = request.json['lFilter']
-    rFilter = request.json['rFilter']
-    gFilter = request.json['gFilter']
-    bFilter = request.json['bFilter']
-    haFilter = request.json['haFilter']
-    oiiiFilter = request.json['oiiiFilter']
-    siiFilter = request.json['siiFilter']
-    duoFilter = request.json['duoFilter']
-    multispectraFilter = request.json['multispectraFilter']
-    JohnsonU = request.json['JohnsonU']
-    JohnsonB = request.json['JohnsonB']
-    JohnsonV = request.json['JohnsonV']
-    JohnsonR = request.json['JohnsonR']
-    JohnsonI = request.json['JohnsonI']
-    SDSSu = request.json['SDSSu']
-    SDSSg = request.json['SDSSg']
-    SDSSr = request.json['SDSSr']
-    SDSSi = request.json['SDSSi']
-    SDSSz = request.json['SDSSz']
-    required_filter = [lFilter, rFilter, gFilter, bFilter, haFilter, oiiiFilter, siiFilter, duoFilter, multispectraFilter,
-                    JohnsonU, JohnsonB, JohnsonV, JohnsonR, JohnsonI, SDSSu, SDSSg, SDSSr, SDSSi, SDSSz]
-    # required_filter = [0 if f == False else f for f in required_filter]
+    required_filter = []
+    for filter in FILTER:
+        required_filter.append(request.json[filter])
 
     # PID = request.form.get('PID').strip()
     # PI = request.form.get('PI').strip()
@@ -723,49 +689,11 @@ def addTarget():
     PID = request.json['PID']
     TID = request.json['TID']
     # all filters
-    lFilter = request.json['lFilter']
-    rFilter = request.json['rFilter']
-    gFilter = request.json['gFilter']
-    bFilter = request.json['bFilter']
-    haFilter = request.json['haFilter'] 
-    oiiiFilter = request.json['oiiiFilter']
-    siiFilter = request.json['siiFilter']
-    duoFilter = request.json['duoFilter']
-    multispectraFilter = request.json['multispectraFilter']
-    JohnsonU = request.json['JohnsonU']
-    JohnsonB = request.json['JohnsonB']
-    JohnsonV = request.json['JohnsonV']
-    JohnsonR = request.json['JohnsonR']
-    JohnsonI = request.json['JohnsonI']
-    SDSSu = request.json['SDSSu']
-    SDSSg = request.json['SDSSg']
-    SDSSr = request.json['SDSSr']
-    SDSSi = request.json['SDSSi']
-    SDSSz = request.json['SDSSz']
-    filter2observe = [lFilter, rFilter, gFilter, bFilter, haFilter, oiiiFilter, siiFilter, duoFilter, multispectraFilter, JohnsonU, JohnsonB, JohnsonV, JohnsonR, JohnsonI, SDSSu, SDSSg, SDSSr, SDSSi, SDSSz]
-    # filter2observe = [0 if f == False else f for f in filter2observe]
-
-    # observe time
-    lFilterHr = int(request.json['lMin']) if lFilter else 0
-    rFilterHr = int(request.json['rMin']) if rFilter else 0
-    gFilterHr = int(request.json['gMin']) if gFilter else 0
-    bFilterHr = int(request.json['bMin']) if bFilter else 0
-    haFilterHr = int(request.json['haMin']) if haFilter else 0
-    oiiiFilterHr = int(request.json['oiiiMin']) if oiiiFilter else 0
-    siiFilterHr = int(request.json['siiMin']) if siiFilter else 0
-    duoFilterHr = int(request.json['duoMin']) if duoFilter else 0
-    multispectraFilterHr = int(request.json['multispectraMin']) if multispectraFilter else 0
-    JohnsonUHr = int(request.json['JohnsonUMin']) if JohnsonU else 0
-    JohnsonBHr = int(request.json['JohnsonBMin']) if JohnsonB else 0
-    JohnsonVHr = int(request.json['JohnsonVMin']) if JohnsonV else 0
-    JohnsonRHr = int(request.json['JohnsonRMin']) if JohnsonR else 0
-    JohnsonIHr = int(request.json['JohnsonIMin']) if JohnsonI else 0
-    SDSSuHr = int(request.json['SDSSuMin']) if SDSSu else 0
-    SDSSgHr = int(request.json['SDSSgMin']) if SDSSg else 0
-    SDSSrHr = int(request.json['SDSSrMin']) if SDSSr else 0
-    SDSSiHr = int(request.json['SDSSiMin']) if SDSSi else 0
-    SDSSzHr = int(request.json['SDSSzMin']) if SDSSz else 0
-    time2observe = [lFilterHr, rFilterHr, gFilterHr, bFilterHr, haFilterHr, oiiiFilterHr, siiFilterHr, duoFilterHr, multispectraFilterHr, JohnsonUHr, JohnsonBHr, JohnsonVHr, JohnsonRHr, JohnsonIHr, SDSSuHr, SDSSgHr, SDSSrHr, SDSSiHr, SDSSzHr]
+    filter2observe, time2observe = [], []
+    for filter in FILTER:
+        filter2observe.append(request.json[filter])
+        time2observe.append(int(request.json[filter.replace("Filter", "")+"Min"]) if request.json[filter] else 0)
+    
     mode = request.json['mode'] # 0: general, 1: cycle
     if request.headers['user']:
         usr = request.headers['user']

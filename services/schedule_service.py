@@ -107,9 +107,13 @@ def save_schedule(SID: int, last_update: str, observe_section: list):
 def generate_default_schedule(usr: str, uhaveid: int):
     eid = get_eid(uhaveid)
     query = "MATCH (e:equipments {EID:$eid}) return e.project_priority"
-    # pid_list = graph.run(query, eid=eid).data()
-    pid_list = [13,4,1]
-    print("PID LIST",pid_list)
+    pid_list = graph.run(query, eid=eid).data()
+    # pid_list = [13,4,1]
+    print("PID LIST", pid_list)
+
+    if not pid_list:
+        print("No joined projects.")
+        return
 
     # 0526
     # arrange the schedule until it is full
@@ -349,7 +353,7 @@ def calculate_default_schedule(base_time, tid_list, observable_time, hint_msgs):
 
     return default_schedule, default_schedule_chart, observable_time
 
-def save_schedule(UID:int, EID:int,schedule:list):
+def save_schedule(UID: int, EID: int, schedule: list):
     data = {}
     data['UID'] = UID
     data['EID'] = EID
@@ -358,22 +362,22 @@ def save_schedule(UID:int, EID:int,schedule:list):
     print(data)
     schedule_db.insert_one(data)
 
-def query_schedule(UID:int,EID:int,date:str):
+def query_schedule(UID: int, EID: int, date: str):
     print(date)
-    result = schedule_db.find_one({"UID":UID,"EID":EID,"date":date})
-    #print(jsonify(result["schedule"]))
-    return result["schedule"]["default_schedule"],result["schedule"]["target_schedule"]
+    result = schedule_db.find_one({'UID': UID, 'EID': EID, 'date': date})
+    # print(jsonify(result["schedule"]))
+    return result['schedule']['default_schedule'], result['schedule']['target_schedule']
 
 def daily():
-    #query all user 
-    query = "MATCH (n:user) order by  n.UID DSEC return n.email as usr"
+    # query all user 
+    query = "MATCH (n:user) order by n.UID DSEC return n.email as usr"
     users = graph.run(query).data()
 
     for i in range(len(users)):
         query = "MATCH (n:user{email:$email})-[rel:UhaveE]->(e:equipments) return rel.uhaveid as uhaveid"
-        equipments = graph.run(query,email = users[i]['usr']).data()
+        equipments = graph.run(query, email=users[i]['usr']).data()
         for j in range(len(equipments)):
-            generate_default_schedule(users[i]['usr'],equipments[j]['uhaveid'])
+            generate_default_schedule(users[i]['usr'], equipments[j]['uhaveid'])
 
 
 

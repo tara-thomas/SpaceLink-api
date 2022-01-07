@@ -125,9 +125,6 @@ def create_user_equipments(usr: str, eid: int, site: str, longitude: float, lati
     return user_equipments
 
 # update the equipment's information
-# def update_user_equipments(aperture: float,Fov: float,pixel_scale: float,tracking_accuracy: float,lim_magnitude: float,elevation_lim: float,mount_type: str,camera_type1:str,
-#                           camera_type2: str,JohnsonB: str,JohnsonR: str,JohnsonV: str,SDSSu: str,SDSSg: str,SDSSr: str,SDSSi: str,SDSSz:str,
-#                           usr: str ,Site: str,Longitude:float,Latitude:float,Altitude:float,tz:str,daylight:bool,wv: float,light_pollution: float, uhaveid : int):
 def update_user_equipments(telName: str, focalLength: float, diameter: float,
                         camName: str, pixelSize: float, sensorW: float, sensorH: float, camera_type1: str, camera_type2: str, filterArray: list,
                         mountName: str, mount_type: str, deg: float, barlowName: str, magnification: float,
@@ -141,11 +138,6 @@ def update_user_equipments(telName: str, focalLength: float, diameter: float,
     fovArcsec = fovDeg * 3600
     resolution = fovArcsec / sensorW
 
-    # query ="MATCH (x:user {email:$usr})-[h:UhaveE {uhaveid: $uhaveid}]->(e:equipments)" \
-    #          f"SET h.site='{site}', h.longitude={longitude}, h.latitude={latitude}, h.altitude={altitude}, h.time_zone='{tz}', h.sky_quality={sq}," \
-    #          f"e.telName='{telName}', e.focalLength={focalLength}, e.diameter={diameter}, e.camName='{camName}', e.pixelSize={pixelSize}, e.sensorW={sensorW}, e.sensorH={sensorH}, e.camera_type1='{camera_type1}', e.camera_type2='{camera_type2}',"\
-    #          f"e.filterArray={filterArray}, e.mountName='{mountName}', e.mount_type='{mount_type}', e.deg={deg}, e.barlowName='{barlowName}', e.magnification={magnification}, e.focalRatio={focalRatio}, e.fovDeg={fovDeg}, e.resolution={resolution}" 
-    
     query = "MATCH (x:user {email:$usr})-[h:UhaveE {uhaveid: $uhaveid}]->(e:equipments)" \
             "set h.site=$site, h.longitude=$longitude, h.latitude=$latitude, h.altitude=$altitude, h.time_zone=$tz, h.sky_quality=$sq," \
             "e.telName=$telName, e.focalLength=$focalLength, e.diameter=$diameter, e.camName=$camName, e.pixelSize=$pixelSize, e.sensorW=$sensorW, e.sensorH=$sensorH, e.camera_type1=$camera_type1, e.camera_type2=$camera_type2," \
@@ -169,7 +161,7 @@ def get_user_equipments(usr: str):
 
     return user_equipments
 
-#this function calculate the declination limit of the equipment and update the table
+# this function calculate the declination limit of the equipment and update the table
 def update_declination(uhaveid):
     query_relation = "MATCH (x:user)-[h:UhaveE{uhaveid:$uhaveid}]->(e:equipments) return h.longitude as longitude, h.latitude as latitude, h.altitude as altitude, e.deg as deg"
     eq_info = graph.run(query_relation, uhaveid=uhaveid).data()
@@ -179,7 +171,7 @@ def update_declination(uhaveid):
     query_update = "MATCH (x:user)-[h:UhaveE{uhaveid:$uhaveid}]->(e:equipments) set h.declination_limit=$dec_lim"
     graph.run(query_update, uhaveid=uhaveid, dec_lim=dec_lim)
 
-#delete a user's equipment
+# delete a user's equipment
 def delete_user_equipment(usr: str,uhaveid: int):
     # delete the schedule first
     eid = get_eid(uhaveid)
@@ -202,18 +194,12 @@ def create_user_target(usr: str, TID: int):
 
     graph.run(query, usr=usr, TID=TID, uliketid=cnt)
 
-#delete a user's interest target
+# delete a user's interest target
 def delete_user_insterest(usr: str, TID: int):
     query = "match (x:user{email:$usr})-[r:ULikeT]->(t:target{TID:$TID}) delete r"
     graph.run(query, usr=usr, TID=TID)
 
-#create a new equipment 
-# def create_equipments(telName: str, focalLength: float, diameter: float,
-#                     camName: str, pixelSize: float, sensorW: int, sensorH: int, camera_type1: str, camera_type2: str,
-#                     lFilter: str, rFilter: str, gFilter: str, bFilter: str, haFilter: str, oiiiFilter: str, siiFilter: str, duoFilter: str, multispectraFilter: str,
-#                     JohnsonU: str, JohnsonB: str, JohnsonV: str, JohnsonR: str, JohnsonI: str, SDSSu: str, SDSSg: str, SDSSr: str, SDSSi: str, SDSSz: str,
-#                     mountName: str, mount_type, deg, barlowName, magnification,
-#                     focalRatio, fovDeg, resolution):
+# create a new equipment 
 def create_equipments(telName: str, focalLength: float, diameter: float,
                     camName: str, pixelSize: float, sensorW: float, sensorH: float, camera_type1: str, camera_type2: str, filterArray: list,
                     mountName: str, mount_type: str, deg: float, barlowName: str, magnification: float,
@@ -235,25 +221,6 @@ def create_equipments(telName: str, focalLength: float, diameter: float,
     equipment.sensorH = sensorH
     equipment.camera_type1 = camera_type1
     equipment.camera_type2 = camera_type2
-    # equipment.lFilter = lFilter
-    # equipment.rFilter = rFilter
-    # equipment.sensorW = gFilter
-    # equipment.sensorW = bFilter
-    # equipment.haFilter = haFilter
-    # equipment.oiiiFilter = oiiiFilter
-    # equipment.siiFilter = siiFilter
-    # equipment.duoFilter = duoFilter
-    # equipment.multispectraFilter = multispectraFilter
-    # equipment.JohnsonU = JohnsonU
-    # equipment.JohnsonB = JohnsonB
-    # equipment.JohnsonV = JohnsonV
-    # equipment.JohnsonR = JohnsonR
-    # equipment.JohnsonI = JohnsonI
-    # equipment.SDSSu = SDSSu
-    # equipment.SDSSg = SDSSg
-    # equipment.SDSSr = SDSSr
-    # equipment.SDSSi = SDSSi
-    # equipment.SDSSz = SDSSz
     equipment.filterArray = filterArray
     equipment.mountName = mountName
     equipment.mount_type = mount_type
@@ -285,11 +252,9 @@ def create_equipments(telName: str, focalLength: float, diameter: float,
 def get_eid(uhaveid):
     query_eid = "MATCH (x:user)-[h:UhaveE{uhaveid:$uhaveid}]->(e:equipments) return e.EID as EID"
     eid = graph.run(query_eid, uhaveid=uhaveid).data()
-
     eid = int(eid[0]['EID'])
 
     return eid
-
 
 def update_equipment_project_priority(usr: str, eid : int, project_priority: list):
     print(project_priority)
@@ -302,5 +267,5 @@ def get_equipment_project_priority(usr:str,eid : int):
     print(eid, " Result: ", result)
     if(len(result) == 0 ): 
         return None
-    else :
+    else:
         return result[0]['priority']
