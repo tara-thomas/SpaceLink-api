@@ -4,6 +4,7 @@ from astroquery.simbad import Simbad
 import astropy.coordinates as coord
 import astropy.units as u
 from services.project_service import update_project_equipment_observe_list, create_project_target
+from services.utils import *
 import webbrowser, json
 from werkzeug.utils import secure_filename
 import csv 
@@ -28,15 +29,15 @@ def get_target():
 # get a target's information
 def get_targetDetails(targetName: str):
     query = "MATCH(t:target{name:$name}) return t.longitude as ra, t.latitude as dec, t.TID as TID"
-
     targetDetails = graph.run(query, name=targetName).data()
+    
     return targetDetails
 
 # get a target's node
 def get_targetNode(targetName: str):
     query = "MATCH(t:target{name:$name}) return t"
-
     targetNode = graph.run(query, name=targetName).data()
+    
     return targetNode
 
 # search a target by keyword
@@ -44,6 +45,7 @@ def search_target(text: str):
     query= "MATCH (t:target) where t.name =~ $text return t.name as name order by t.name "
     target = graph.run(query, text = text).data()
     print(target)
+
     return target
 
 # 1020 create target if it doesn't exist
@@ -120,32 +122,6 @@ def query_simbad_byCoord(targetCoord: str, rad: float, unit: str):
         tar_list.append({'name': tar[0], 'ra': ra, 'dec': dec})
 
     return tar_list
-
-# 1027 convert hms dms to degree
-def hms2degree(ra_hms: list, dec_dms: list):
-    len_ra = len(ra_hms)
-    len_dec = len(dec_dms)
-    if len_ra != 0:
-        ra_symbol = -1 if float(ra_hms[0]) < 0 else 1
-    if len_dec != 0:
-        dec_symbol = -1 if float(dec_dms[0]) < 0 else 1
-
-    # transfer the unit of ra/dec from hms/dms to degrees
-    if len_ra == 1:
-        ra_degree = float(ra_hms[0]) * 15
-    elif len_ra == 2:
-        ra_degree = (float(ra_hms[0]) + ra_symbol*float(ra_hms[1])/60) * 15
-    else:
-        ra_degree = (float(ra_hms[0]) + ra_symbol*float(ra_hms[1])/60 + ra_symbol*float(ra_hms[2])/3600) * 15
-
-    if len_dec == 1:
-        dec_degree = float(dec_dms[0])
-    elif len_dec == 2:
-        dec_degree = float(dec_dms[0]) + dec_symbol*float(dec_dms[1])/60
-    else:
-        dec_degree = float(dec_dms[0]) + dec_symbol*float(dec_dms[1])/60 + dec_symbol*float(dec_dms[2])/3600
-
-    return ra_degree, dec_degree
     
 # def allowed_file(filename: str):
 #     return '.' in filename and \

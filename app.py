@@ -23,6 +23,9 @@ CORS(app)
 
 graph = db_auth() #connect to neo4j
 
+FILTER = ['lFilter','rFilter','gFilter','bFilter','haFilter','oiiiFilter','siiFilter','duoFilter','multispectraFilter', \
+            'JohnsonU','JohnsonB','JohnsonV','JohnsonR','JohnsonI',\
+            'SDSSu','SDSSg','SDSSr','SDSSi','SDSSz']
 
 
 @app.route('/', methods=['GET'])
@@ -48,23 +51,23 @@ def register_post():
 
     # Check for blank fields in the registration form
     if not username or not name or not email or not affiliation or not title  or not country or not password or not confirm:
-        flash("Please populate all the registration fields"+country, "error")
-        return {'username': username, 'name': name, 'email': email, 'affiliation': affiliation, 'title': title, 'country': country, 'password': password, 'confirm': confirm}
+        return "Please populate all the registration fields"+country, 400
+        #return {'username': username, 'name': name, 'email': email, 'affiliation': affiliation, 'title': title, 'country': country, 'password': password, 'confirm': confirm}
 
     # Check if password and confirm match
     if password != confirm:
-        flash("Passwords do not match")
-        return {'username': username, 'name': name, 'email': email, 'affiliation': affiliation, 'title': title, 'country': country, 'password': password, 'confirm': confirm}
+        return "Passwords do not match", 400
+        # return {'username': username, 'name': name, 'email': email, 'affiliation': affiliation, 'title': title, 'country': country, 'password': password, 'confirm': confirm}
 
     # Create the user
     user = create_user(username, name, email, affiliation, title, country, password)
     # Verify another user with the same email does not exist
     if not user:
-        flash("A user with that email already exists.")
-        return {'username': username, 'name': name, 'email': email, 'affiliation': affiliation, 'title': title, 'country': country, 'password': password, 'confirm': confirm}
+        return "A user with that email already exists.", 400
+        # return {'username': username, 'name': name, 'email': email, 'affiliation': affiliation, 'title': title, 'country': country, 'password': password, 'confirm': confirm}
 
     # return redirect(url_for("dashboard_get"))
-    return "It worked!"
+    return "It worked!", 200
 
 '''
 @app.route('/accounts/login', methods=['GET'])
@@ -160,8 +163,9 @@ def joinProject():
         session["usr"] = usr
         PID = request.json['PID']
         # get the equipment user selected
-        selected_equipment = request.json['selected_equipment']
-        auto_join(usr, int(PID), selected_equipment)
+        # selected_equipment = request.json['selected_equipment']
+        selected_eid, selected_equipment = get_qualified_equipment(usr, PID)
+        auto_join(usr, int(PID), selected_eid)
         return {"Success": "Successfully joined the project."}
     else:
         return "login"
@@ -176,7 +180,7 @@ def getJoinedProjects():
         projects = get_project_join(usr)
         if(projects == None):
             return "Not joined project yet!"
-        return {'user_profile':user_profile,'projects':projects}
+        return {'user_profile': user_profile,'projects': projects}
         #return render_template("accounts/joinedProjects.html", user_profile=user_profile, projects = projects)
     # else:
     #     return "login"
@@ -188,19 +192,14 @@ def manageProject():
         usr = request.headers['user']
         session["usr"] = usr
         projects = user_manage_projects_get(usr)
-        # PID = request.json['PID']
-        # project_progress_percentage, target_progress_percentage = get_progress_percentage(int(PID))
-        # print(project_progress_percentage, target_progress_percentage)
+
         return {'projects': projects}
-        #return render_template("accounts/manageprojects.html", user_profile=user_profile, projects = projects)
     else:
         return "login"
-        #return redirect(url_for("login_get"))
 
 # 1019 for users to rank their joined projects
 @app.route('/accounts/rankedProjects', methods=['GET'])
 def getRankedProjects():
-
     EID = int(request.json['EID'])
     usr = request.headers['user']
               
@@ -279,8 +278,8 @@ def getSchedule():
         print("UHAVEID: ", uhaveid, "USER: ", usr)
         UID = get_uid(usr)
         EID = get_eid(uhaveid)
-        return jsonify(query_schedule(UID,EID,str(date.today())))
-        #return jsonify(generate_default_schedule(usr, uhaveid))
+        # return jsonify(query_schedule(UID, EID, str(date.today())))
+        return jsonify(generate_default_schedule(usr, uhaveid))
     else:
         return "login"
 
@@ -425,27 +424,9 @@ def equipments_post():
 
         # filters
         if request.json['method'] == 'create':
-            lFilter = request.json['lFilter']
-            rFilter = request.json['rFilter']
-            gFilter = request.json['gFilter']
-            bFilter = request.json['bFilter']
-            haFilter = request.json['haFilter']
-            oiiiFilter = request.json['oiiiFilter']
-            siiFilter = request.json['siiFilter']
-            duoFilter = request.json['duoFilter']
-            multispectraFilter = request.json['multispectraFilter']
-            JohnsonU = request.json['JohnsonU']
-            JohnsonB = request.json['JohnsonB']
-            JohnsonV = request.json['JohnsonV']
-            JohnsonR = request.json['JohnsonR']
-            JohnsonI = request.json['JohnsonI']
-            SDSSu = request.json['SDSSu']
-            SDSSg = request.json['SDSSg']
-            SDSSr = request.json['SDSSr']
-            SDSSi = request.json['SDSSi']
-            SDSSz = request.json['SDSSz']
-            filterArray = [lFilter, rFilter, gFilter, bFilter, haFilter, oiiiFilter, siiFilter, duoFilter, multispectraFilter,
-                            JohnsonU, JohnsonB, JohnsonV, JohnsonR, JohnsonI, SDSSu, SDSSg, SDSSr, SDSSi, SDSSz]
+            filterArray = []
+            for filter in FILTER:
+                filterArray.append(request.json[filter])
         
         if request.json['method'] == 'update':
             filterArray = request.json['filterArray']
@@ -553,7 +534,6 @@ def target_search_post():
         coord = request.json['searchCoord'].strip()
         rad = request.json['rad'].strip()
         unit = request.json['unit'].strip()
-
         target = query_simbad_byCoord(coord, float(rad), unit)
 
     # text = '(?i).*'+text+'.*'
@@ -655,28 +635,9 @@ def project_create_post():
     # required_camera_type = [colored, mono]
 
     # required filters
-    lFilter = request.json['lFilter']
-    rFilter = request.json['rFilter']
-    gFilter = request.json['gFilter']
-    bFilter = request.json['bFilter']
-    haFilter = request.json['haFilter']
-    oiiiFilter = request.json['oiiiFilter']
-    siiFilter = request.json['siiFilter']
-    duoFilter = request.json['duoFilter']
-    multispectraFilter = request.json['multispectraFilter']
-    JohnsonU = request.json['JohnsonU']
-    JohnsonB = request.json['JohnsonB']
-    JohnsonV = request.json['JohnsonV']
-    JohnsonR = request.json['JohnsonR']
-    JohnsonI = request.json['JohnsonI']
-    SDSSu = request.json['SDSSu']
-    SDSSg = request.json['SDSSg']
-    SDSSr = request.json['SDSSr']
-    SDSSi = request.json['SDSSi']
-    SDSSz = request.json['SDSSz']
-    required_filter = [lFilter, rFilter, gFilter, bFilter, haFilter, oiiiFilter, siiFilter, duoFilter, multispectraFilter,
-                    JohnsonU, JohnsonB, JohnsonV, JohnsonR, JohnsonI, SDSSu, SDSSg, SDSSr, SDSSi, SDSSz]
-    # required_filter = [0 if f == False else f for f in required_filter]
+    required_filter = []
+    for filter in FILTER:
+        required_filter.append(request.json[filter])
 
     # PID = request.form.get('PID').strip()
     # PI = request.form.get('PI').strip()
@@ -721,55 +682,24 @@ def addTarget():
     PID = request.json['PID']
     TID = request.json['TID']
     # all filters
-    lFilter = request.json['lFilter']
-    rFilter = request.json['rFilter']
-    gFilter = request.json['gFilter']
-    bFilter = request.json['bFilter']
-    haFilter = request.json['haFilter'] 
-    oiiiFilter = request.json['oiiiFilter']
-    siiFilter = request.json['siiFilter']
-    duoFilter = request.json['duoFilter']
-    multispectraFilter = request.json['multispectraFilter']
-    JohnsonU = request.json['JohnsonU']
-    JohnsonB = request.json['JohnsonB']
-    JohnsonV = request.json['JohnsonV']
-    JohnsonR = request.json['JohnsonR']
-    JohnsonI = request.json['JohnsonI']
-    SDSSu = request.json['SDSSu']
-    SDSSg = request.json['SDSSg']
-    SDSSr = request.json['SDSSr']
-    SDSSi = request.json['SDSSi']
-    SDSSz = request.json['SDSSz']
-    filter2observe = [lFilter, rFilter, gFilter, bFilter, haFilter, oiiiFilter, siiFilter, duoFilter, multispectraFilter, JohnsonU, JohnsonB, JohnsonV, JohnsonR, JohnsonI, SDSSu, SDSSg, SDSSr, SDSSi, SDSSz]
-    # filter2observe = [0 if f == False else f for f in filter2observe]
+    filter2observe, time2observe = [], []
+    for filter in FILTER:
+        filter2observe.append(request.json[filter])
+        time2observe.append(int(request.json[filter.replace("Filter", "")+"Min"]) if request.json[filter] else 0)
+    mode = request.json['mode'] # 0: staring, 1: cycle
 
-    # observe time
-    lFilterHr = int(request.json['lMin']) if lFilter else 0
-    rFilterHr = int(request.json['rMin']) if rFilter else 0
-    gFilterHr = int(request.json['gMin']) if gFilter else 0
-    bFilterHr = int(request.json['bMin']) if bFilter else 0
-    haFilterHr = int(request.json['haMin']) if haFilter else 0
-    oiiiFilterHr = int(request.json['oiiiMin']) if oiiiFilter else 0
-    siiFilterHr = int(request.json['siiMin']) if siiFilter else 0
-    duoFilterHr = int(request.json['duoMin']) if duoFilter else 0
-    multispectraFilterHr = int(request.json['multispectraMin']) if multispectraFilter else 0
-    JohnsonUHr = int(request.json['JohnsonUMin']) if JohnsonU else 0
-    JohnsonBHr = int(request.json['JohnsonBMin']) if JohnsonB else 0
-    JohnsonVHr = int(request.json['JohnsonVMin']) if JohnsonV else 0
-    JohnsonRHr = int(request.json['JohnsonRMin']) if JohnsonR else 0
-    JohnsonIHr = int(request.json['JohnsonIMin']) if JohnsonI else 0
-    SDSSuHr = int(request.json['SDSSuMin']) if SDSSu else 0
-    SDSSgHr = int(request.json['SDSSgMin']) if SDSSg else 0
-    SDSSrHr = int(request.json['SDSSrMin']) if SDSSr else 0
-    SDSSiHr = int(request.json['SDSSiMin']) if SDSSi else 0
-    SDSSzHr = int(request.json['SDSSzMin']) if SDSSz else 0
-    time2observe = [lFilterHr, rFilterHr, gFilterHr, bFilterHr, haFilterHr, oiiiFilterHr, siiFilterHr, duoFilterHr, multispectraFilterHr, JohnsonUHr, JohnsonBHr, JohnsonVHr, JohnsonRHr, JohnsonIHr, SDSSuHr, SDSSgHr, SDSSrHr, SDSSiHr, SDSSzHr]
-    mode = request.json['mode'] # 0: general, 1: cycle
     if request.headers['user']:
         usr = request.headers['user']
         session["usr"] = usr
-        target  = create_project_target(usr, int(PID), int(TID), filter2observe, time2observe, int(mode))
-        return jsonify(target = target)
+        if request.json['method'] == 'create':
+            target  = create_project_target(usr, int(PID), int(TID), filter2observe, time2observe, int(mode))
+            return jsonify(target = target)
+        if request.json['method'] == 'update':
+            target  = update_project_target(int(PID), int(TID), filter2observe, time2observe, int(mode))
+            return jsonify(target = target)
+        if request.json['method'] == 'delete':
+            delete_project_target(int(PID), int(TID))
+            return "deleted"
     else:
         return "login"
 

@@ -106,17 +106,19 @@ def save_schedule(SID: int, last_update: str, observe_section: list):
 # 0331 generate default schedule by sorting target
 def generate_default_schedule(usr: str, uhaveid: int):
     eid = get_eid(uhaveid)
-    query = "MATCH (e:equipments {EID:$eid}) return e.project_priority"
-    # pid_list = graph.run(query, eid=eid).data()
-    pid_list = [13,4,1]
-    print("PID LIST",pid_list)
+    query = "MATCH (e:equipments {EID:$eid}) return e.project_priority as project_priority"
+    result = graph.run(query, eid=eid).data()
+    # pid_list = [13,4,1]
+    pid_list = result[0]['project_priority']
+
+    if not pid_list:
+        print("No joined projects.")
+        return
 
     # 0526
     # arrange the schedule until it is full
-    cnt = 0
-    schedule_target = []
-    while True:
-        pid = pid_list[cnt]
+    schedule_target, schedule_pid = [], []
+    for pid in pid_list:
         project_target = get_project_target(pid)
         # print("PROJECT TARGET: ", project_target)
         # print("\n\n\n\n\n\n\n\n\n")
@@ -124,24 +126,27 @@ def generate_default_schedule(usr: str, uhaveid: int):
         # print("SORTED TARGET: ", sorted_target)
         # print("\n\n\n\n\n\n\n\n\n")
         schedule_target += sorted_target
+        schedule_pid += [pid] * len(sorted_target)
         # print("SCHEDULE TARGET: ", schedule_target)
         # print("\n\n\n\n\n\n\n\n\n")
-        cnt += 1
         if (len(schedule_target) > 100):
             break
 
     print(len(schedule_target))
     # print("\nSCHEDULE TARGET:\n", schedule_target)
-    default_schedule, target_datetime = get_observable_time(uhaveid, pid, schedule_target)
+    default_schedule, target_datetime = get_observable_time(uhaveid, schedule_pid, schedule_target)
 
     schedule = {}
     schedule["default_schedule"] = default_schedule
     schedule["target_schedule"] = target_datetime
-    #print([default_schedule, target_datetime])
+    # print(default_schedule)
+    # print(target_datetime)
     uid = get_uid(usr)
-    save_schedule(uid,eid,schedule)
 
-    #return [default_schedule, target_datetime]
+    # 0107 temporally comment this
+    # save_schedule(uid,eid,schedule)
+
+    return [default_schedule, target_datetime]
 
 # 0331 sort targets' priority
 def sort_project_target(project_target):
@@ -163,20 +168,20 @@ def get_eid(uhaveid):
 
 # 0505 get the time need to observe of each target in projects
 def get_time2observe(pid, tid):
-    query = "MATCH (p:project{PID:$pid})-[r:PHaveT]->(t:target{TID:$tid}) RETURN r.Time_to_Observe as T2O, r.Mode as mode, r.Cycle_Time as cycle_time"
+    query = "MATCH (p:project{PID:$pid})-[r:PHaveT]->(t:target{TID:$tid}) RETURN r.Time_to_Observe as T2O, r.Mode as mode"
     result = graph.run(query, pid=pid, tid=tid).data()
 
     t2o = result[0]['T2O']
-    t2o = [1000, 1000, 1080, 0, 300, 0, 0, 1500]
+    # t2o = [1000, 1000, 1080, 0, 300, 0, 0, 1500]
     mode = result[0]['mode']
-    mode = 0
-    cycle_time = result[0]['cycle_time']
-    cycle_time = [-1, -1, -1, -1, -1, -1, -1, -1]
+    # mode = 0
+    # cycle_time = result[0]['cycle_time']
+    # cycle_time = [-1, -1, -1, -1, -1, -1, -1, -1]
 
-    return t2o, mode, cycle_time
+    return t2o, mode
 
 # 0421 + 0505 + 0512
-def get_observable_time(uhaveid: int, pid: int, sorted_target: list):
+def get_observable_time(uhaveid: int, schedule_pid: list, sorted_target: list):
     current_time = datetime.now()
     observability = []
     target_datetime = []
@@ -185,13 +190,13 @@ def get_observable_time(uhaveid: int, pid: int, sorted_target: list):
     schedule_filled = [-1]*1440
 
     # get information from uhavee and equipment table
-    query_relation = "MATCH (x:user)-[h:UhaveE{uhaveid:$uhaveid}]->(e:equipments) return h.longitude as longitude, h.latitude as latitude, h.altitude as altitude, h.time_zone as time_zone, e.elevation_lim as elevation_lim"
+    query_relation = "MATCH (x:user)-[h:UhaveE{uhaveid:$uhaveid}]->(e:equipments) return h.longitude as longitude, h.latitude as latitude, h.altitude as altitude, h.time_zone as time_zone, e.deg as deg"
     eq_info = graph.run(query_relation, uhaveid=uhaveid).data()
     longitude = float(eq_info[0]['longitude'])
     latitude = float(eq_info[0]['latitude'])
     altitude = float(eq_info[0]['altitude'])
-    time_zone = int(eq_info[0]['time_zone'].split("C")[1])
-    elevation_lim = float(eq_info[0]['elevation_lim'])
+    time_zone = eq_info[0]['time_zone']
+    deg = float(eq_info[0]['deg'])
 
     # 0512
     filter_array = ["Johnson_B", "Johnson_V", "Johnson_R", "SDSS_u", "SDSS_g", "SDSS_r", "SDSS_i", "SDSS_z"]
@@ -203,7 +208,7 @@ def get_observable_time(uhaveid: int, pid: int, sorted_target: list):
     base_time -= timedelta(hours=time_zone)
     utc2local = False
     # /1020
-    for tar in sorted_target:
+    for pid, tar in zip(schedule_pid, sorted_target):
         tid = int(tar['TID'])
         ra = float(tar['lon'])
         dec = float(tar['lat'])
@@ -227,8 +232,8 @@ def get_observable_time(uhaveid: int, pid: int, sorted_target: list):
         # /0512
 
         # get the observable time
-        t_start, t_end = obtime.run(uhaveid, longitude, latitude, altitude, elevation_lim, tid, ra, dec, base_time)
-        # print(uhaveid, longitude, latitude, altitude, elevation_lim, tid, ra, dec)
+        t_start, t_end = obtime.run(uhaveid, longitude, latitude, altitude, deg, tid, ra, dec, base_time)
+        # print(uhaveid, longitude, latitude, altitude, deg, tid, ra, dec)
         # print(t_start, t_end)
 
         # make the observability chart to each target
@@ -349,7 +354,7 @@ def calculate_default_schedule(base_time, tid_list, observable_time, hint_msgs):
 
     return default_schedule, default_schedule_chart, observable_time
 
-def save_schedule(UID:int, EID:int,schedule:list):
+def save_schedule(UID: int, EID: int, schedule: list):
     data = {}
     data['UID'] = UID
     data['EID'] = EID
@@ -358,23 +363,22 @@ def save_schedule(UID:int, EID:int,schedule:list):
     print(data)
     schedule_db.insert_one(data)
 
-def query_schedule(UID:int,EID:int,date:str):
+def query_schedule(UID: int, EID: int, date: str):
     print(date)
-    result = schedule_db.find_one({"UID":UID,"EID":EID,"date":date})
-    #print(jsonify(result["schedule"]))
-    return result["schedule"]["default_schedule"],result["schedule"]["target_schedule"]
+    result = schedule_db.find_one({'UID': UID, 'EID': EID, 'date': date})
+    # print(jsonify(result["schedule"]))
+    return result['schedule']['default_schedule'], result['schedule']['target_schedule']
 
-def daily_calculate_schedule():
-    #query all user 
-    query = "MATCH (n:user) order by  n.UID DSEC return n.email as usr"
+def daily():
+    # query all user 
+    query = "MATCH (n:user) order by n.UID DSEC return n.email as usr"
     users = graph.run(query).data()
 
     for i in range(len(users)):
         query = "MATCH (n:user{email:$email})-[rel:UhaveE]->(e:equipments) return rel.uhaveid as uhaveid"
-        equipments = graph.run(query,email = users[i]['usr']).data()
+        equipments = graph.run(query, email=users[i]['usr']).data()
         for j in range(len(equipments)):
-            generate_default_schedule(users[i]['usr'],equipments[j]['uhaveid'])
+            generate_default_schedule(users[i]['usr'], equipments[j]['uhaveid'])
 
-#TODO
-#def time_decution():
+
     
