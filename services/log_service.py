@@ -56,7 +56,7 @@ def check_log_format(filename: str):
             # filter + time , filter + 
             for filter in FILTER:
                 if row[filter + '_Exposure_Time'].isdigit() :
-                    if int(row[[filter + ' Exposure Time']) < 0:
+                    if int(row[filter + ' Exposure Time']) < 0:
                         return "rows "+ str(index+1) + " error : \"" + filter + " Exposure Time\" format error"   
                 else:
                     return "rows "+ str(index+1) + " error : " + filter + "Exposure Time format error. "      
