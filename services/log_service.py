@@ -48,18 +48,24 @@ def check_log_format(filename: str):
 
             # check date
                
-            # filter and mode check
-            mode = int(row['Mode'])
-            if mode < 0 or mode > 2 :
-                return "rows "+ str(index+1) + " error : Mode format error"      
+            # # filter and mode check
+            # mode = int(row['Mode'])
+            # if mode < 0 or mode > 2 :
+            #     return "rows "+ str(index+1) + " error : Mode format error"      
             
+            # filter + time , filter + 
             for filter in FILTER:
-                if row[filter].isdigit() :
-                    if int(row[filter]) < 0:
-                        return "rows "+ str(index+1) + " error : \"" + filter + " Time\" format error"   
+                if row[filter + '_Exposure_Time'].isdigit() :
+                    if int(row[filter + ' Exposure Time']) < 0:
+                        return "rows "+ str(index+1) + " error : \"" + filter + " Exposure Time\" format error"   
                 else:
-                    return "rows "+ str(index+1) + " error : " + filter + " format error. "      
+                    return "rows "+ str(index+1) + " error : " + filter + "Exposure Time format error. "      
 
+                if row[filter + '_Images'].isdigit() :
+                    if int(row[filter]) < 0:
+                        return "rows "+ str(index+1) + " error : \"" + filter + " Images\" format error"   
+                else:
+                    return "rows "+ str(index+1) + " error : " + filter + "Images format error. "      
 
             # if mode:
             #     try:
@@ -74,7 +80,6 @@ def check_log_format(filename: str):
 
 
 def update_observe_time(filename : str, PID : int, usr: str):
-         
     with open(filename, newline="") as csvfile:
         rows = csv.DictReader(csvfile)
     
@@ -85,11 +90,12 @@ def update_observe_time(filename : str, PID : int, usr: str):
         result = graph.run(query, name=usr).data()
 
         TID = int(result['TID']) 
-        
-        
+                
         observeTime = []
         for filter in FILTER:
-            observeTime.append(int(row[filter]))
+            exposure = int(row[filter + '_Exposure_Time'])
+            images = int(row[filter + '_Images'])   
+            observeTime.append(exposure * images)
 
         time_deduction(PID, TID, observeTime)
 
