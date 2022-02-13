@@ -165,8 +165,9 @@ def joinProject():
         session["usr"] = usr
         PID = request.json['PID']
         # get the equipment user selected
-        selected_equipment = request.json['selected_equipment']
-        auto_join(usr, int(PID), selected_equipment)
+        # selected_equipment = request.json['selected_equipment']
+        selected_eid, selected_equipment = get_qualified_equipment(usr, PID)
+        auto_join(usr, int(PID), selected_eid)
         return {"Success": "Successfully joined the project."}
     else:
         return "login"
@@ -181,7 +182,7 @@ def getJoinedProjects():
         projects = get_project_join(usr)
         if(projects == None):
             return "Not joined project yet!"
-        return {'user_profile':user_profile,'projects':projects}
+        return {'user_profile': user_profile,'projects': projects}
         #return render_template("accounts/joinedProjects.html", user_profile=user_profile, projects = projects)
     # else:
     #     return "login"
@@ -201,7 +202,6 @@ def manageProject():
 # 1019 for users to rank their joined projects
 @app.route('/accounts/rankedProjects', methods=['GET'])
 def getRankedProjects():
-
     EID = int(request.json['EID'])
     usr = request.headers['user']
               
@@ -280,8 +280,8 @@ def getSchedule():
         print("UHAVEID: ", uhaveid, "USER: ", usr)
         UID = get_uid(usr)
         EID = get_eid(uhaveid)
-        return jsonify(query_schedule(UID, EID, str(date.today())))
-        # return jsonify(generate_default_schedule(usr, uhaveid))
+        # return jsonify(query_schedule(UID, EID, str(date.today())))
+        return jsonify(generate_default_schedule(usr, uhaveid))
     else:
         return "login"
 
@@ -536,7 +536,6 @@ def target_search_post():
         coord = request.json['searchCoord'].strip()
         rad = request.json['rad'].strip()
         unit = request.json['unit'].strip()
-
         target = query_simbad_byCoord(coord, float(rad), unit)
 
     # text = '(?i).*'+text+'.*'

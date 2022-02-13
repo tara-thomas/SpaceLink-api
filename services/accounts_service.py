@@ -175,11 +175,31 @@ def update_declination(uhaveid):
 def delete_user_equipment(usr: str,uhaveid: int):
     # delete the schedule first
     eid = get_eid(uhaveid)
-    graph.run("MATCH (e:equipments {EID:$EID})-[r:EhaveS]->(s:schedule) DELETE r,s", EID=eid)
+    # get the PIDs of the projects this equipment joined
+    query_userPJ = "MATCH (p:project)-[r:PhaveE]->(e:equipments {EID:$EID}) return p.PID as PID"
+    userP = graph.run(query_userPJ, EID=eid).data()
     # delete the project-equipment relationship
-    graph.run("match (p:project)-[r:PhaveE]->(e:equipments{EID:$EID}) DELETE r", EID=eid)
+    graph.run("match (p:project)-[r:PhaveE]->(e:equipments {EID:$EID}) DELETE r", EID=eid)
     # delete user's equipment
-    graph.run("MATCH (x:user {email:$usr})-[h:UhaveE {uhaveid: $uhaveid}]->(e:equipments) DELETE h,e", usr=usr, uhaveid=uhaveid)
+    graph.run("MATCH (x:user {email:$usr})-[h:UhaveE {uhaveid: $uhaveid}]->(e:equipments) DELETE h, e", usr=usr, uhaveid=uhaveid)
+    # if no other equipments join in such project, delete the member_of relatioship
+    query_userEQ = "MATCH (x:user {email:$usr})-[h:UhaveE]->(e:equipments) return e.EID as EID"
+    userE = graph.run(query_userEQ, usr=usr).data()
+    
+    for p in userP:
+        pid = p['PID']
+        equipment_in_project = False
+        for e in userE:
+            eid = e['EID']
+            query = "MATCH (p:project {PID:$PID})-[r]->(e:equipments {EID:$EID}) return exists((p)-[:PhaveE]->(e)) as flag"
+            exist = graph.run(query, PID=pid, EID=eid).data()
+            # if user's other equipment is still in the project
+            if exist and exist[0]['flag']:
+                equipment_in_project = True
+                break
+        if not equipment_in_project:
+            # leave the project
+            graph.run("match (x:user {email:$usr})-[r:Member_of]->(p:project {PID:$PID}) DELETE r", usr=usr, PID=pid)
 
 # create a new interest target for user
 def create_user_target(usr: str, TID: int):
@@ -256,15 +276,15 @@ def get_eid(uhaveid):
 
     return eid
 
-def update_equipment_project_priority(usr: str, eid : int, project_priority: list):
+def update_equipment_project_priority(usr: str, eid: int, project_priority: list):
     print(project_priority)
     query = "MATCH x = (e:equipments{EID:$eid}) set e.project_priority = $project_priority"
     result = graph.run(query, eid = eid, project_priority = project_priority)
 
-def get_equipment_project_priority(usr:str,eid : int):
+def get_equipment_project_priority(usr: str, eid:int):
     query = "MATCH (x:user{email:$usr})-[h:UhaveE]->(e:equipments{EID:$eid}) return e.project_priority as priority"
     result = graph.run(query,usr = usr,eid = eid).data()
-    print(eid, " Result: ", result)
+    print(eid, "Result:", result)
     if(len(result) == 0 ): 
         return None
     else:
