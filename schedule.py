@@ -6,6 +6,12 @@ import numpy as np
 import threading, time, signal
 from services.schedule_service import generate_default_schedule
 
+# For sending email
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from string import Template
+from pathlib import Path
+import smtplib
 
 graph = db_auth() #connect to neo4j
 
@@ -86,9 +92,9 @@ if __name__ == '__main__':
     job.start()
     
     while True:
-          try:
+        try:
             time.sleep(1)
-          except ProgramKilled:
+        except ProgramKilled:
             print("Program killed: running cleanup code")
             job.stop()
             break
