@@ -25,6 +25,10 @@ client = pymongo.MongoClient("mongodb://localhost:27017/")
 db = client["SpaceLink"]
 schedule_db = db['schedule']
 
+FILTER = ['lFilter','rFilter','gFilter','bFilter','haFilter','oiiiFilter','siiFilter','duoFilter','multispectraFilter', \
+            'JohnsonU','JohnsonB','JohnsonV','JohnsonR','JohnsonI',\
+            'SDSSu','SDSSg','SDSSr','SDSSi','SDSSz']
+
 # needs modification
 '''
 #create a new schedule for a equipment
@@ -151,7 +155,7 @@ def generate_default_schedule(usr: str, uhaveid: int):
     uid = get_uid(usr)
 
     # 0107 temporally comment this
-    # save_schedule(uid,eid,schedule)
+    # save_schedule(uid,eid, schedule)
 
     return [default_schedule, target_datetime]
 
@@ -175,17 +179,17 @@ def get_eid(uhaveid):
 
 # 0505 get the time need to observe of each target in projects
 def get_time2observe(pid, tid):
-    query = "MATCH (p:project{PID:$pid})-[r:PHaveT]->(t:target{TID:$tid}) RETURN r.Time_to_Observe as T2O, r.Mode as mode"
+    query = "MATCH (p:project{PID:$pid})-[r:PHaveT]->(t:target{TID:$tid}) RETURN r.Remain_to_Observe as R2O, r.Mode as mode"
     result = graph.run(query, pid=pid, tid=tid).data()
 
-    t2o = result[0]['T2O']
+    r2o = result[0]['R2O']
     # t2o = [1000, 1000, 1080, 0, 300, 0, 0, 1500]
     mode = result[0]['mode']
     # mode = 0
     # cycle_time = result[0]['cycle_time']
     # cycle_time = [-1, -1, -1, -1, -1, -1, -1, -1]
 
-    return t2o, mode
+    return r2o, mode
 
 # 0421 + 0505 + 0512
 def get_observable_time(uhaveid: int, schedule_pid: list, sorted_target: list):
@@ -206,7 +210,6 @@ def get_observable_time(uhaveid: int, schedule_pid: list, sorted_target: list):
     deg = float(eq_info[0]['deg'])
 
     # 0512
-    filter_array = ["Johnson_B", "Johnson_V", "Johnson_R", "SDSS_u", "SDSS_g", "SDSS_r", "SDSS_i", "SDSS_z"]
     hint_msgs = {}
     # /0512
 
@@ -226,15 +229,16 @@ def get_observable_time(uhaveid: int, schedule_pid: list, sorted_target: list):
         # 0512
         hint = "Please Observe with Filter"
         t2o_total = 0
-        for i in range(len(filter_array)):
+        for i in range(len(FILTER)):
             if t2o[i] != 0:
                 t2o_total += t2o[i]
-                hint += (" " + filter_array[i] + ",")
+                hint += (" " + FILTER[i] + ",")
         
         hint = hint[:len(hint)-1]
-        if mode != 0:
-            hint += (", and " + str(mode) + " seconds for each filter")
-        hint += '.'
+        if mode == 0:
+            hint += (" in Staring mode.")
+        else:
+            hint += (" in Cycling mode.")
         hint_msgs[str(tid)] = hint
         # /0512
 
@@ -265,7 +269,7 @@ def get_observable_time(uhaveid: int, schedule_pid: list, sorted_target: list):
             
             # how long can the target observation could last
             t_last = t_end-t_start
-            # if the target doesn't need to be observed thant long
+            # if the target doesn't need to be observed that long
             if timedelta(minutes=t2o_total) < t_last:
                 t_last = timedelta(minutes=t2o_total)
 
