@@ -795,7 +795,7 @@ def upload_log():
             
             #check the file format 
             check_format_result = check_log_format(filepath)
-            if( check_format_result != "Success"):
+            if( check_format_result != 1):
                 os.remove(filepath)
                 return 0
             #update the observe time
@@ -807,7 +807,7 @@ def upload_log():
                 return 0
 
         else :
-            print("Not supported file")
+            print("The file format is not support\n")
 
 
 @app.route('/accounts/logout')
