@@ -7,7 +7,7 @@ from services.project_service import *
 from services.schedule_service import *
 from services.friend_service import *
 from services.target_service import *
-from services.postgres_service import *
+#from services.postgres_service import *
 from services.log_service import *
 import os, uuid, pathlib
 import random
@@ -32,11 +32,9 @@ FILTER = ['lFilter','rFilter','gFilter','bFilter','haFilter','oiiiFilter','siiFi
 def ind():
     return "It's working man"
 
-'''
-@app.route('/accounts/register', methods=['GET'])
-def register_get():
-    return render_template("accounts/register.html")
-'''
+@app.route('/test/test', methods=['GET'])
+def test():
+    return "It's a test"
 
 @app.route('/accounts/register', methods=['POST'])
 def register_post():
@@ -295,7 +293,7 @@ def addFriend():
         return jsonify(success = "success")
     else:
         return "login"
-        #return redirect(url_for("login_get"))
+        #return redirect(url_for("login_get"))git
 
 @app.route('/getPMInfo', methods=['POST'])
 def getPMInfo():
@@ -821,4 +819,4 @@ def logout():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0',port=5000)

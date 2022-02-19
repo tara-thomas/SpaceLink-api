@@ -376,40 +376,4 @@ def query_schedule(UID: int, EID: int, date: str):
     # print(jsonify(result["schedule"]))
     return result['schedule']['default_schedule'], result['schedule']['target_schedule']
 
-def daily():
-    # query all user 
-    query = "MATCH (n:user) order by n.UID DSEC return n.email as usr, n.name as name"
-    users = graph.run(query).data()
 
-    for i in range(len(users)):
-        email = users[i]['usr']
-        name = users[i]['name']
-        query = "MATCH (n:user{email:$email})-[rel:UhaveE]->(e:equipments) return rel.uhaveid as uhaveid"
-        equipments = graph.run(query, email=email).data()
-        for j in range(len(equipments)):
-            generate_default_schedule(users[i]['usr'], equipments[j]['uhaveid'])
-
-        # 0213 Send notification email to user
-        send_email(name, email)
-
-def send_email(name, email):
-    content = MIMEMultipart()
-    content["subject"] = "New Schedule Arranged by Spacelink!"
-    content["from"] = "e94056013@gmail.com"
-    content["to"] = email
-    # content.attach(MIMEText("↓↓↓ Click the link down below to check out your new schedule tonight! ↓↓↓"))
-
-    template = Template(Path("mail/email_template.html").read_text())
-    body = template.substitute({"name": name})
-
-    content.attach(MIMEText(body, "html"))
-
-    with smtplib.SMTP(host="smtp.gmail.com", port="587") as smtp:
-        try:
-            smtp.ehlo()
-            smtp.starttls()
-            smtp.login("spacelink@gmail.com", "abcdefghijklmnop")
-            smtp.send_message(content)
-            print("Complete!")
-        except Exception as e:
-            print("Error message: ", e)

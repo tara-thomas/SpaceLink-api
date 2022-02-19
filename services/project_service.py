@@ -11,6 +11,7 @@ import astro.astroplan_calculations as schedule
 import astro.nighttime_calculations as night
 import ephem
 import random
+import threading
 
 graph = db_auth()
 
@@ -400,6 +401,16 @@ def auto_join(usr: str, PID: int, selected_eid_list: list):
             old_priority.append(PID)
             update_equipment_project_priority(usr, eid, old_priority)
 
+
+        #generate initial schedule in background
+        #uhaveeid_list = get_uhavid_all(usr)
+        #threads = []
+        #query = "MATCH"
+        #for i in range(len(get_uhavid_all)): #TODO need to deal with load balance 
+        #    threads.append(threading.Thread(target = generate_default_schedule, args = (usr,uhaveeid_list[i])))
+        #    threads[i].start()
+    
+   
 
 #this function is used to test, the user will auto leave the project
 def auto_leave(usr: str, PID: int):
