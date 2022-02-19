@@ -306,9 +306,13 @@ def update_project_target(PID: int, TID: int, filter2observe: list, time2observe
 def delete_project_target(PID: int, TID: int):
     graph.run("MATCH (p:project {PID:$PID})-[r:PHaveT]->(t:target {TID: $TID}) DELETE r", PID=PID, TID=TID)
 
+# 0219 delete all project targets
+def delete_all_project_target(PID: int):
+    graph.run("MATCH (p:project {PID:$PID})-[r:PHaveT]->(t:target) DELETE r", PID=PID)
+
 # 1221 get project / project target progress (percentage)
 def get_progress_percentage(PID: int):
-    query = "MATCH (p:project {PID:$PID})-[r:PHaveT]->(t:target) return r.Filter_to_Observe as f2o, r.Time_to_Observe as t2o, r.Remain_to_Observe as r2o, t.TID as TID, t.name as name, t.latitude as lat, t.longitude as lon"
+    query = "MATCH (p:project {PID:$PID})-[r:PHaveT]->(t:target) return r.Filter_to_Observe as f2o, r.Time_to_Observe as t2o, r.Remain_to_Observe as r2o, r.Mode as mode, t.TID as TID, t.name as name, t.latitude as lat, t.longitude as lon"
     target_progress = graph.run(query, PID=PID).data()
 
     # calculate entire project progress
@@ -326,6 +330,8 @@ def get_progress_percentage(PID: int):
         f2o = {}
         for i, f in enumerate(FILTER):
             f2o[f] = t['f2o'][i]
+            f2o[f.replace("Filter", "")+"Min"] = t['t2o'][i]
+        f2o['mode'] = t['mode']
         target_progress_percentage.append({'TID': t_TID, 'name': t['name'], 'filter': f2o, 'lat': t['lat'], 'lon': t['lon'], 'lat_dms': dms, 'lon_hms': hms, 'percentage': t_percent})
 
     project_progress_percentage = (project_total_t2o-project_total_r2o) / project_total_t2o if project_total_t2o is not 0 else 100
