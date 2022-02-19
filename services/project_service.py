@@ -323,7 +323,10 @@ def get_progress_percentage(PID: int):
         project_total_t2o += t_t2o
         project_total_r2o += t_r2o
         hms, dms = degree2hms(t['lon'], t['lat'], _round=True)
-        target_progress_percentage.append({'TID': t_TID, 'name': t['name'], 'filter': t['f2o'], 'lat': dms, 'lon': hms, 'percentage': t_percent})
+        f2o = {}
+        for i, f in enumerate(FILTER):
+            f2o[f] = t['f2o'][i]
+        target_progress_percentage.append({'TID': t_TID, 'name': t['name'], 'filter': f2o, 'lat': t['lat'], 'lon': t['lon'], 'lat_dms': dms, 'lon_hms': hms, 'percentage': t_percent})
 
     project_progress_percentage = (project_total_t2o-project_total_r2o) / project_total_t2o if project_total_t2o is not 0 else 100
 
