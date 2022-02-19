@@ -11,6 +11,7 @@ import astro.astroplan_calculations as schedule
 import astro.nighttime_calculations as night
 import ephem
 import random
+import threading
 
 graph = db_auth()
 
@@ -307,7 +308,7 @@ def delete_project_target(PID: int, TID: int):
 
 # 1221 get project / project target progress (percentage)
 def get_progress_percentage(PID: int):
-    query = "MATCH (p:project {PID:$PID})-[r:PHaveT]->(t:target) return r.Time_to_Observe as t2o, r.Remain_to_Observe as r2o, t.TID as TID, t.name as name, t.latitude as lat, t.longitude as lon"
+    query = "MATCH (p:project {PID:$PID})-[r:PHaveT]->(t:target) return r.Filter_to_Observe as f2o, r.Time_to_Observe as t2o, r.Remain_to_Observe as r2o, t.TID as TID, t.name as name, t.latitude as lat, t.longitude as lon"
     target_progress = graph.run(query, PID=PID).data()
 
     # calculate entire project progress
@@ -322,7 +323,7 @@ def get_progress_percentage(PID: int):
         project_total_t2o += t_t2o
         project_total_r2o += t_r2o
         hms, dms = degree2hms(t['lon'], t['lat'], _round=True)
-        target_progress_percentage.append({'TID': t_TID, 'name': t['name'], 'lat': "DEC: " + str(dms), 'lon': "RA: " + str(hms), 'percentage': t_percent})
+        target_progress_percentage.append({'TID': t_TID, 'name': t['name'], 'filter': t['f2o'], 'lat': dms, 'lon': hms, 'percentage': t_percent})
 
     project_progress_percentage = (project_total_t2o-project_total_r2o) / project_total_t2o if project_total_t2o is not 0 else 100
 
@@ -400,6 +401,16 @@ def auto_join(usr: str, PID: int, selected_eid_list: list):
             old_priority.append(PID)
             update_equipment_project_priority(usr, eid, old_priority)
 
+
+        #generate initial schedule in background
+        #uhaveeid_list = get_uhavid_all(usr)
+        #threads = []
+        #query = "MATCH"
+        #for i in range(len(get_uhavid_all)): #TODO need to deal with load balance 
+        #    threads.append(threading.Thread(target = generate_default_schedule, args = (usr,uhaveeid_list[i])))
+        #    threads[i].start()
+    
+   
 
 #this function is used to test, the user will auto leave the project
 def auto_leave(usr: str, PID: int):

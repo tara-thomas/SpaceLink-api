@@ -281,6 +281,7 @@ def upload_2_DB(filename : str, PID : int, usr: str):
                     filter2observe.append(False)
                 time2observe.append(int(row[filter]))
 
+
             # create project target relationship
             create_project_target(usr, PID, TID, filter2observe, time2observe, int(row['Mode']))
             # query="MATCH (p:project {PID: $PID}) MATCH (t:target {TID:$TID}) create (p)-[pht:PHaveT {phavetid:$phavetid, JohnsonB:$JohnsonB, JohnsonV:$JohnsonV, JohnsonR:$JohnsonR, SDSSu:$SDSSu, SDSSg:$SDSSg, SDSSr:$SDSSr, SDSSi:$SDSSi, SDSSz:$SDSSz, Time_to_Observe:$time2observe, Mode:$mode }]->(t) return pht.phavetid"
