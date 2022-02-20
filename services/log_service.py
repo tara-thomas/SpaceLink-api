@@ -71,9 +71,9 @@ def update_observe_time(filename : str, PID : int, usr: str):
 
             # query by coordinate to check target exist or not
             query = "MATCH(t:target{name:$name}) return t.TID as TID"
-            result = graph.run(query, name=usr).data()
+            result = graph.run(query, name=row['Name']).data()
 
-            TID = int(result['TID']) 
+            TID = int(result[0]['TID']) 
                     
             observeTime = []
             for filter in FILTER:

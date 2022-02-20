@@ -52,7 +52,7 @@ def daily():
         equipments = graph.run(query, email=email).data()
         for j in range(len(equipments)):
             generate_default_schedule(users[i]['usr'], equipments[j]['uhaveid'])
-    # Send notification email to user
+        # Send notification email to user
         # send_email(name, email)
 
 def send_email(name, email):

@@ -300,27 +300,24 @@ def upload_2_DB(filename : str, PID : int, usr: str):
 def time_deduction(PID: int, TID: int, observe_time: list):
     
     remain = get_remain_time_to_observe(PID,TID)
-    for i in len(observe_time):
+    for i in range(len(observe_time)):
         remain[i] = remain[i] - observe_time[i]
-
-    set_remain_time_to_observe(PID,TID)
+    set_remain_time_to_observe(PID,TID, remain)
 
     return 1
 
 def set_remain_time_to_observe(PID: int, TID: int, remain: list):
-    query = "match x=(p:project{PID:$pid})-[r:PHaveT]->(t:target{TID:$tid}) set r.Remain_to_Observe={ramain:$remain} return r.Remain_to_Observe as remain" #update new time_to_observe
-    result = graph.run(query, pid = PID, tid = TID).data()
+    query = "match x=(p:project{PID:$pid})-[r:PHaveT]->(t:target{TID:$tid}) set r.Remain_to_Observe=$remain return r.Remain_to_Observe as remain" #update new time_to_observe
+    result = graph.run(query, pid = PID, tid = TID, remain=remain).data()
     print(result[0]['remain'])
-    return
+    return 1
 
 def get_remain_time_to_observe(PID: int, TID: int):
-    
     query = "match x=(p:project{PID:$pid})-[r:PHaveT]->(t:target{TID:$tid}) return r.Remain_to_Observe as remain"  #query old time_to_observe
     time = graph.run(query, pid = PID, tid = TID).data()
     return time[0]['remain']
 
 def get_time_to_observe(PID: int, TID: int):
-    
     query = "match x=(p:project{PID:$pid})-[r:PHaveT]->(t:target{TID:$tid}) return r.Time_to_Observe as time"  #query origin time_to_observe
     time = graph.run(query, pid = PID, tid = TID).data()
     return time[0]['time']
