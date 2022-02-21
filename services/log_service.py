@@ -7,6 +7,7 @@ import csv
 
 graph = db_auth()
 
+ALLOWED_EXTENSIONS = {'csv', 'tsv'}
 FILTER = ['lFilter','rFilter','gFilter','bFilter','haFilter','oiiiFilter','siiFilter','duoFilter','multispectraFilter', \
             'JohnsonU','JohnsonB','JohnsonV','JohnsonR','JohnsonI',\
             'SDSSu','SDSSg','SDSSr','SDSSi','SDSSz']
@@ -33,7 +34,6 @@ FILTER = ['lFilter','rFilter','gFilter','bFilter','haFilter','oiiiFilter','siiFi
 #         remain_time = graph.run(query2,pid = int(i['pid']),tid = int(i['tid'])).data()
 #         remain_time[i['fliter_type']] = remain_time[i['fliter_type']] - observe_time
 #         graph.run(query1, pid = int(i['pid']),tid = int(i['tid']), remain = remain_time)
-
 
 def check_log_format(filename: str): 
     with open(filename, newline="") as csvfile:
@@ -74,10 +74,8 @@ def check_log_format(filename: str):
             #             raise Exception
             #     except ValueError:
             #         return "rows "+ str(index+1) + " error : \"Total cycle time\" format error"   
-
     csvfile.close()
     return "Success"
-
 
 def update_observe_time(filename : str, PID : int, usr: str):
     with open(filename, newline="") as csvfile:
@@ -99,13 +97,12 @@ def update_observe_time(filename : str, PID : int, usr: str):
 
         time_deduction(PID, TID, observeTime)
 
-    return 1
-    
+    return 
 
+def allowed_file(filename: str):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # def query_log(user:str,date:str):
 #     for result in observe_log.find({'user_email':user, 'date': {'$regex': date, '$options': 'i'}}):
 #         print(result)
-
-
-
