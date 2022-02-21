@@ -3,7 +3,8 @@ from data.db_session import db_auth
 from astroquery.simbad import Simbad
 import astropy.coordinates as coord
 import astropy.units as u
-from services.project_service import update_project_equipment_observe_list, create_project_target
+# from services.project_service import update_project_equipment_observe_list, create_project_target
+from services.project_service import create_project_target
 from services.utils import *
 import webbrowser, json
 from werkzeug.utils import secure_filename
@@ -18,7 +19,7 @@ PATTERN = re.compile('.*[0-9][0-9]:[0-9][0-9]:[0-9][0-9].[0-9]')
 graph = db_auth()
 
 
-# return all the target in the DB, this version limit the number to 100 
+# N return all the target in the DB, this version limit the number to 100 
 def get_target():
     # this function will return all target
     query = "MATCH(t:target) return t.name as name order by t.TID limit 100"
@@ -26,21 +27,21 @@ def get_target():
     target = graph.run(query)
     return target
 
-# get a target's information
+# Y get a target's information
 def get_targetDetails(targetName: str):
     query = "MATCH(t:target{name:$name}) return t.longitude as ra, t.latitude as dec, t.TID as TID"
     targetDetails = graph.run(query, name=targetName).data()
     
     return targetDetails
 
-# get a target's node
+# N get a target's node
 def get_targetNode(targetName: str):
     query = "MATCH(t:target{name:$name}) return t"
     targetNode = graph.run(query, name=targetName).data()
     
     return targetNode
 
-# search a target by keyword
+# N search a target by keyword
 def search_target(text: str):
     query= "MATCH (t:target) where t.name =~ $text return t.name as name order by t.name "
     target = graph.run(query, text = text).data()
@@ -48,7 +49,7 @@ def search_target(text: str):
 
     return target
 
-# 1020 create target if it doesn't exist
+# Y 1020 create target if it doesn't exist
 def create_target(targetName: str, ra: float, dec: float):
     targetDetail = get_targetDetails(targetName)
     if not targetDetail:
@@ -69,7 +70,7 @@ def create_target(targetName: str, ra: float, dec: float):
     else:
         return "Target already exists.", targetDetail[0]['TID']
 
-# add target in Simbad to target table (1020 modify)
+# Y add target in Simbad to target table (1020 modify)
 def query_simbad_byName(targetName: str):
     limitedSimbad = Simbad()
     limitedSimbad.ROW_LIMIT = 5
@@ -93,7 +94,7 @@ def query_simbad_byName(targetName: str):
         print("Target doesn't exist.")
         return None
 
-# 1020
+# Y 1020
 def query_simbad_byCoord(targetCoord: str, rad: float, unit: str):
     limitedSimbad = Simbad()
     limitedSimbad.ROW_LIMIT = 5
