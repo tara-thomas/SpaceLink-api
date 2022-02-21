@@ -44,16 +44,21 @@ def generate_default_schedule(usr: str, uhaveid: int):
 
     # 0526
     # arrange the schedule until it is full
-    schedule_target, schedule_pid = [], []
+    schedule_target, schedule_pid, schedule_target_no_duplicates = [], [], []
     for pid in pid_list:
         project_target = get_project_target(pid)
         sorted_target = sort_project_target(project_target)
         schedule_target += sorted_target
         schedule_pid += [pid] * len(sorted_target)
-        if (len(schedule_target) > 100):
+        if (len(schedule_target) > 50):
             break
     
-    default_schedule, target_datetime = get_observable_time(uhaveid, schedule_pid, schedule_target)
+    # remove duplicates
+    for t in schedule_target:
+        if t not in schedule_target_no_duplicates:
+            schedule_target_no_duplicates.append(t)
+
+    default_schedule, target_datetime = get_observable_time(uhaveid, schedule_pid, schedule_target_no_duplicates)
 
     schedule = {}
     schedule["default_schedule"] = default_schedule
@@ -63,7 +68,7 @@ def generate_default_schedule(usr: str, uhaveid: int):
     uid = get_uid(usr)
 
     # 0107 temporally comment this
-    # save_schedule(uid,eid, schedule)
+    # save_schedule(uid, eid, schedule)
 
     return [default_schedule, target_datetime]
 
