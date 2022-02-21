@@ -92,11 +92,16 @@ def get_project(usr: str)->Optional[Project]:
 
 # Y search a project by keyword
 def search_project(text: str):
-    query= "MATCH (p:project) where p.name =~ $text return p.name as name order by p.name limit 20"
+    query= "MATCH (p:project) where p.name =~ $text return p.PID as PID, p.name as name order by p.name limit 20"
     project = graph.run(query, text=text).data()
     print(project)
 
     return project
+
+def get_join_status(usr, PID):
+    query = "MATCH (n:user{email:$usr}), (p:project{PID:$PID}) RETURN exists((n)-[:Member_of]-(p))"
+    
+    return graph.run(query, usr=usr, PID=PID)
 
 '''
 # N choose the project with user's interested targets (interest based)

@@ -142,12 +142,26 @@ def dashboard_get():
         session["usr"] = usr
         user_profile = get_profile(usr)
         projects = get_project(usr)
+        return {'user_profile': user_profile, 'projects': projects}
+    else:
+        return "login"
+
+# Y
+@app.route('/searchProject', methods=['POST'])
+def searchProject():
+    if request.headers['user']:
+        usr = request.headers['user']
+        session["usr"] = usr
         # if search button clicked
-        # if request.json['method'] == 'search':
-        #     text = request.json['list'].strip()
-        #     searched_projects = search_project(text)
-        searched_projects = []
-        return {'user_profile': user_profile, 'projects': projects, 'searched_projects': searched_projects}
+        if request.json['method'] == 'search':
+            text = request.json['list'].strip()
+            searched_projects = search_project(text)
+            return {'searched_projects': searched_projects}
+        if request.json['method'] == 'select':
+            PID = request.json['PID']
+            project = get_project_detail(PID)
+            join_status = get_join_status(usr, PID)
+            return {'project': project, 'join_status': join_status}
     else:
         return "login"
 
