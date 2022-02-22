@@ -1,15 +1,12 @@
-from data.db_session import db_auth
 from typing import Optional
 from passlib.handlers.sha2_crypt import sha512_crypt as crypto
-from services.classes import User, Target, Equipments, Project, Schedule
-from datetime import datetime, timedelta
-
+from services.classes import User, Equipments
+from services.schedule_service import delete_schedule
+from services.utils import *
 import astro.declination_limit_of_location as declination
-import astro.astroplan_calculations as schedule
 import random
 import numpy as np
 
-graph = db_auth()
 
 # Y find the user node bt email
 def find_user(email: str):
@@ -18,13 +15,12 @@ def find_user(email: str):
 
 # Y create a new user
 def create_user(username: str, name: str, email: str, affiliation: str, title: str, country: str, password: str) -> Optional[User]:
-    
-    if find_user(email):  #Check user exist or not
+    if find_user(email):  # check user exist or not
         return None
     
     user = User()
     
-    max_id = graph.run(f"MATCH (u:user) RETURN u.UID order by u.UID DESC LIMIT 1").data()  #generate a id for user
+    max_id = graph.run(f"MATCH (u:user) RETURN u.UID order by u.UID DESC LIMIT 1").data()  # generate a id for user
     print(max_id)
     if len(max_id) == 0:
         user.UID = 0
@@ -57,7 +53,7 @@ def login_user(email: str, password: str) -> Optional[User]:
     if not user:  #check user exist or not
         print(f"Invalid User - {email}")
         return None
-    if not verify_hash(user.hashed_password, password): #check the password correct or not
+    if not verify_hash(user.hashed_password, password): # check the password correct or not
         print(f"Invalid Password for {email}") 
         return None
     print(f"User {email} passed authentication")
@@ -76,21 +72,6 @@ def update_profile(usr: str, username: str, name: str, affiliation: str, title: 
     "RETURN x.username as username, x.name as name, x.email as email, x.affiliation as affiliation, x.title as title, x.country as country"
     user_profile = graph.run(query).data()
     return user_profile
-
-# returns the number of user in the DB
-def count_user():
-    query = "match (x:user) return x.UID as max order by max DESC limit 1"
-    count = graph.run(query).data()
-
-    return int(count[0]['max'])
-
-# get user's UID
-def get_uid(usr: str):
-    query_uid = "MATCH (x:user{email:$usr}) return x.UID as UID"
-    uid = graph.run(query_uid, usr=usr).data()
-    uid = int(uid[0]['UID'])
-
-    return uid
 
 # Y returns the number of equipment of a user
 def count_user_equipment(usr: str)->int:
@@ -167,7 +148,9 @@ def update_declination(uhaveid):
 # Y delete a user's equipment
 def delete_user_equipment(usr: str,uhaveid: int):
     # delete the schedule first
+    uid = get_uid(usr)
     eid = get_eid(uhaveid)
+    delete_schedule(uid, eid)
     # get the PIDs of the projects this equipment joined
     query_userPJ = "MATCH (p:project)-[r:PhaveE]->(e:equipments {EID:$EID}) return p.PID as PID"
     userP = graph.run(query_userPJ, EID=eid).data()
@@ -193,31 +176,6 @@ def delete_user_equipment(usr: str,uhaveid: int):
         if not equipment_in_project:
             # leave the project
             graph.run("match (x:user {email:$usr})-[r:Member_of]->(p:project {PID:$PID}) DELETE r", usr=usr, PID=pid)
-
-# N create a new interest target for user
-def create_user_target(usr: str, TID: int):
-    query = "match (x:user{email:$usr}) match (t:target{TID:$TID}) create (x)-[ult:ULikeT{uliketid:$uliketid}]->(t)"
-
-    count = graph.run("MATCH ()-[ult:UlikeT]->() return ult.uliketid order by ult.uliketid DESC limit 1 ").data()
-    if len(count) == 0:
-        cnt = 0
-    else:
-        cnt = count[0]['ult.uliketid']+1
-    print(TID, usr)
-
-    graph.run(query, usr=usr, TID=TID, uliketid=cnt)
-
-# N return all the interest targets of a user
-def get_user_interest(usr: str):
-    query = "match (x:user{email:$usr})-[r:ULikeT]->(t) return t.name as name, t.TID as TID"
-    interest = graph.run(query, usr=usr).data()
-
-    return interest
-
-# delete a user's interest target
-def delete_user_insterest(usr: str, TID: int):
-    query = "match (x:user{email:$usr})-[r:ULikeT]->(t:target{TID:$TID}) delete r"
-    graph.run(query, usr=usr, TID=TID)
 
 # Y create a new equipment 
 def create_equipments(telName: str, focalLength: float, diameter: float,
@@ -254,37 +212,3 @@ def create_equipments(telName: str, focalLength: float, diameter: float,
     graph.create(equipment)
     
     return equipment
-
-'''
-def get_equipments(usr:str)->Optional[Equipments]:    
-    equipment = graph.run("MATCH (x:usrr {email:$usr})-[h:have_e]->(e:equipment) return e.EID as eid, e.aperture as aperture, e.Fov as Fov, e.pixel_scale as pixel_scale," \
-                           "e.tracking_accuracy as  tracking_accuracy, e.lim_magnitude as lim_magnotude, e.elevation_lim as elevation_lim, e.mount_type as mount_type, e.camera_type1 as camer_type1," \
-                           "e.camera_type2 as camera_type2, e.JohnsonB as JohnsonB, e.JohnsonR as JohnsonR, e.JohnsonV as JohnsonV, e.SDSSu as SDSSu, e.SDSSg as SDSSg, e.SDSSr as SDSSr, e.SDSSi as SDSSi," \
-                           "e.SDSSz as SDSSz", usr = usr).data()
-    print(equipment)
-    return equipment  
-'''   
-
-# Y get the equipment id
-def get_eid(uhaveid):
-    query_eid = "MATCH (x:user)-[h:UhaveE{uhaveid:$uhaveid}]->(e:equipments) return e.EID as EID"
-    eid = graph.run(query_eid, uhaveid=uhaveid).data()
-    eid = int(eid[0]['EID'])
-
-    return eid
-
-# Y
-def update_equipment_project_priority(usr: str, eid: int, project_priority: list):
-    print(project_priority)
-    query = "MATCH x = (e:equipments{EID:$eid}) set e.project_priority = $project_priority"
-    graph.run(query, eid=eid, project_priority=project_priority)
-
-# Y
-def get_equipment_project_priority(usr: str, eid:int):
-    query = "MATCH (x:user{email:$usr})-[h:UhaveE]->(e:equipments{EID:$eid}) return e.project_priority as priority"
-    result = graph.run(query,usr = usr,eid = eid).data()
-    print("EID:", eid, "Result:", result)
-    if(len(result) == 0 ): 
-        return None
-    else:
-        return result[0]['priority']

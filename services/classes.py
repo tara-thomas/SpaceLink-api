@@ -41,7 +41,7 @@ class Equipments(GraphObject):
     fovDeg = Property()
     resolution = Property()
     project_priority = Property() # 0921
-    owner = RelatedFrom(User,"UHAVEE")
+    owner = RelatedFrom(User, "UHAVEE")
 
 class Target(GraphObject):
     __primarylabel__ ="target"
@@ -64,10 +64,3 @@ class Project(GraphObject):
     required_camera_type = Property()
     required_filter = Property()
     own = RelatedFrom(User, "MANAGE")
-
-class Schedule(GraphObject):
-    __primarylabel__ = "schedule"
-    __primarykey__ = "SID"
-    SID = Property()
-    last_update = Property()
-    observe_section = Property()
