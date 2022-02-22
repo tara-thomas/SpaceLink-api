@@ -179,7 +179,9 @@ def upload_2_DB(filename : str, PID : int, usr: str):
     with open(filename, newline="") as csvfile:
         rows = csv.DictReader(csvfile)
         
+        tar_list = []
         for index,row in rows:
+            target = {}
             # change coordinate unit to degree
             try:
                 float(row['ra'])
@@ -201,41 +203,21 @@ def upload_2_DB(filename : str, PID : int, usr: str):
                 row['dec'] = h+ m/60+ s/3600
 
             print(row['ra'],row['dec'])
-            # query by coordinate to check target exist or not
-            query = "MATCH(t:target{ra:$ra, dec:$dec}) return t.TID as TID"
-            result = graph.run(query,ra = row['ra'],dec=row['dec']).data()
-            if not len(result):
-                # if not, create the target node 
-                count = graph.run("MATCH (t:target) return t.TID  order by t.TID DESC limit 1 ").data()
-                target = Target()
-                if len(count) == 0:
-                    target.TID = 0
-                else:
-                    target.TID = count[0]['t.TID']+1
-                    TID = target.TID
-                target.name = row['Name']
-                target.longitude = row['ra']
-                target.latitude = row['dec']
-                graph.create(target) 
-            else:
-                TID = int(result['TID']) 
-            
-            
-            time2observe = []
-            filter2observe = []
+            target['ra'] = row['ra']
+            target['dec'] = row['dec']
+            target['name'] = row['Name']
+            target['mode'] = row['Mode']
 
             for filter in FILTER:
                 if(int(row[filter]) > 0):
-                    filter2observe.append(True)
+                    target[filter] = True
                 else:
-                    filter2observe.append(False)
-                time2observe.append(int(row[filter]))
+                    target[filter] = False
+                target[filter.replace("Filter", "")+"Min"] = int(row[filter])
 
+            tar_list.append(target)
 
-            # create project target relationship
-            create_project_target(usr, PID, TID, filter2observe, time2observe, int(row['Mode']))
-
-    return 1
+    return tar_list
 
 
 def time_deduction(PID: int, TID: int, observe_time: list):
