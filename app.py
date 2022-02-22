@@ -528,12 +528,10 @@ def upload_target():
                 os.remove(filepath)
                 return 0
             #upload file to DB
-            if(upload_2_DB(filepath,PID,usr)): 
-                os.remove(filepath)
-                return 1
-            else:
-                os.remove(filepath)
-                return 0
+            tar_list = upload_2_DB(filepath,PID,usr)
+            os.remove(filepath)
+            
+            return tar_list
             
         else:
             print("Not supported file")
