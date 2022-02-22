@@ -1,6 +1,6 @@
 from data.db_session import db_auth
 from typing import Optional
-from services.classes import User, Target, Equipments, Project, Schedule
+from services.classes import Project
 from datetime import datetime, timedelta
 from services.account_service import get_equipment_project_priority, update_equipment_project_priority
 from services.utils import *

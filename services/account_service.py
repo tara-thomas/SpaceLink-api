@@ -1,11 +1,10 @@
 from data.db_session import db_auth
 from typing import Optional
 from passlib.handlers.sha2_crypt import sha512_crypt as crypto
-from services.classes import User, Target, Equipments, Project, Schedule
+from services.classes import User, Equipments
 from datetime import datetime, timedelta
 
 import astro.declination_limit_of_location as declination
-import astro.astroplan_calculations as schedule
 import random
 import numpy as np
 

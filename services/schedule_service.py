@@ -1,7 +1,6 @@
 from os import scandir
 
 from data.db_session import db_auth
-from services.classes import User, Target, Equipments, Project, Schedule
 from datetime import datetime, timedelta, date
 from services.project_service import get_project_target
 from services.account_service import get_uid
