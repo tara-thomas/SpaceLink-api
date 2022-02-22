@@ -49,7 +49,7 @@ def search_target(text: str):
 
     return target
 
-# Y 1020 create target if it doesn't exist
+# Y create target if it doesn't exist
 def create_target(targetName: str, ra: float, dec: float):
     targetDetail = get_targetDetails(targetName)
     if not targetDetail:
@@ -70,7 +70,7 @@ def create_target(targetName: str, ra: float, dec: float):
     else:
         return "Target already exists.", targetDetail[0]['TID']
 
-# Y add target in Simbad to target table (1020 modify)
+# Y add target in Simbad to target table
 def query_simbad_byName(targetName: str):
     limitedSimbad = Simbad()
     limitedSimbad.ROW_LIMIT = 5
@@ -94,7 +94,7 @@ def query_simbad_byName(targetName: str):
         print("Target doesn't exist.")
         return None
 
-# Y 1020
+# Y
 def query_simbad_byCoord(targetCoord: str, rad: float, unit: str):
     limitedSimbad = Simbad()
     limitedSimbad.ROW_LIMIT = 5
@@ -322,6 +322,3 @@ def get_time_to_observe(PID: int, TID: int):
     query = "match x=(p:project{PID:$pid})-[r:PHaveT]->(t:target{TID:$tid}) return r.Time_to_Observe as time"  #query origin time_to_observe
     time = graph.run(query, pid = PID, tid = TID).data()
     return time[0]['time']
-
-
-

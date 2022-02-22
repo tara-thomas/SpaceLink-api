@@ -2,14 +2,10 @@ from data.db_session import db_auth
 from typing import Optional
 from services.classes import User, Target, Equipments, Project, Schedule
 from datetime import datetime, timedelta
-from services.accounts_service import get_equipment_project_priority, update_equipment_project_priority
+from services.account_service import get_equipment_project_priority, update_equipment_project_priority
 from services.utils import *
 
-import astro.declination_limit_of_location as declination
-import astro.astroplan_calculations as schedule
-import astro.nighttime_calculations as night
 import random
-import threading
 
 graph = db_auth()
 
@@ -28,7 +24,6 @@ def get_project_info(pid_list : list):
 
 # Y get a project's information
 def get_project_detail(PID: int):
-    #get the project's detail
     query = "MATCH (n:project {PID: $PID})" \
     "return n.project_type as project_type, n.title as title, n.PI as PI, n.description as description, n.FoV_lower_limit as FoV_lower_limit, n.resolution_upper_limit as resolution_upper_limit, " \
     "n.required_camera_type as required_camera_type, n.required_filter as required_filter, n.PID as PID"
@@ -151,7 +146,7 @@ def get_project_filter(usr: str, project_list: list):
     return chosen_project
 '''
 
-# Y 0331 rank joined projects
+# Y rank joined projects
 def get_project_default_priority(projects):
     ranked_projects = sorted(projects, key=lambda k:k['project_type'], reverse=True)
 
@@ -210,11 +205,6 @@ def create_project(usr, project_type, title, description, FoV_lower_limit, resol
 # Y update a project's information
 def update_project(usr: str, PID: int, umanageid: int, project_type: str, title: str, description: str,
                 FoV_lower_limit: float, resolution_upper_limit: float, required_camera_type: list, required_filter: list)->Optional[Project]:
-    # print(PID)
-    # print(umanageid)
-    # print(usr)
-    query ="MATCH rel = (x:user)-[p:Manage {umanageid: $umanageid}]->(m:project) return rel"
-    # print(graph.run(query, usr=usr, umanageid=umanageid).data())
 
     query ="MATCH (x:user {email:$usr})-[p:Manage {umanageid: $umanageid}]->(m:project)" \
             "set m.project_type=$project_type, m.title=$title, m.description=$description," \
@@ -279,19 +269,17 @@ def user_manage_projects_get(usr: str):
 # Y add a new target to project
 def create_project_target(usr: str, PID: int, TID: int, filter2observe: list, time2observe: list, mode: int):
     query="MATCH (p:project {PID:$PID}) MATCH (t:target {TID:$TID}) create (p)-[pht:PHaveT {phavetid:$phavetid, Filter_to_Observe:$filter2observe, Time_to_Observe:$time2observe, Remain_to_Observe:$remain2observe, Mode:$mode}]->(t) return pht.phavetid"
-    # only show the observable targets of that equipment
-    # update_project_equipment_observe_list(usr, PID, TID, JohnsonB, JohnsonR, JohnsonV, SDSSu, SDSSg, SDSSr, SDSSi, SDSSz)
     count = graph.run("MATCH ()-[pht:PHaveT]->() return pht.phavetid  order by pht.phavetid DESC limit 1 ").data()
     if len(count) == 0:
         cnt = 0
     else:
         cnt = count[0]['pht.phavetid']+1
-    result = graph.run(query, PID = PID, TID = TID, phavetid = cnt, filter2observe = filter2observe, time2observe = time2observe, remain2observe = time2observe, mode = mode).data()
+    result = graph.run(query, PID=PID, TID=TID, phavetid=cnt, filter2observe=filter2observe, time2observe=time2observe, remain2observe=time2observe, mode=mode).data()
     print("RESULT", result)
 
     return result
 
-# Y 0107 edit project target
+# Y edit project target
 def update_project_target(PID: int, TID: int, filter2observe: list, time2observe: list, mode: int):
     query ="MATCH (p:project {PID:$PID})-[r:PHaveT]->(t:target {TID: $TID})" \
             "set r.Filter_to_Observe=$filter2observe, r.Time_to_Observe=$time2observe, r.Remain_to_Observe=$time2observe, r.Mode=$mode"
@@ -299,11 +287,11 @@ def update_project_target(PID: int, TID: int, filter2observe: list, time2observe
 
     return result
 
-# Y 0107 delete project target
+# Y delete project target
 def delete_project_target(PID: int, TID: int):
     graph.run("MATCH (p:project {PID:$PID})-[r:PHaveT]->(t:target {TID: $TID}) DELETE r", PID=PID, TID=TID)
 
-# Y 1221 get project / project target progress (percentage)
+# Y get project / project target progress (percentage)
 def get_progress_percentage(PID: int):
     query = "MATCH (p:project {PID:$PID})-[r:PHaveT]->(t:target) return r.Filter_to_Observe as f2o, r.Time_to_Observe as t2o, r.Remain_to_Observe as r2o, r.Mode as mode, t.TID as TID, t.name as name, t.latitude as lat, t.longitude as lon"
     target_progress = graph.run(query, PID=PID).data()
@@ -331,7 +319,7 @@ def get_progress_percentage(PID: int):
 
     return project_progress_percentage, target_progress_percentage
 
-# Y 1214 return the qualified equipments when join a project
+# Y return the qualified equipments when joining a project
 def get_qualified_equipment(usr: str, PID: int):
     query_eid = "MATCH (x:user{email:$usr})-[r:UhaveE]->(e:equipments) RETURN e.EID as EID, e.telName as telName, e.fovDeg as fovDeg, e.resolution as resolution, e.filterArray as filterArray, e.camera_type1 as camera_type1, r.declination_limit as declination"
     equipment = graph.run(query_eid, usr=usr).data()
@@ -354,7 +342,7 @@ def get_qualified_equipment(usr: str, PID: int):
 
     return qualified_eid_list, qualified_equipment_list
 
-# Y this function is uesd for test, the user will auto join the project (1214 modified)
+# Y this function is used for test, the user will auto join the project
 def auto_join(usr: str, PID: int, selected_eid_list: list):
     # check if already joined the project 
     query = "MATCH (x:user {email:$usr})-[r]->(p:project{PID:$PID})  return exists((x)-[:Member_of]->(p)) as flag"

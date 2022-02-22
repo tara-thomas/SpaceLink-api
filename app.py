@@ -1,12 +1,11 @@
 from flask import Flask, render_template, redirect, session, url_for, flash, request, jsonify
 from flask_cors import CORS
 from data.db_session import db_auth
-from services.accounts_service import *
+from services.account_service import *
 from services.project_service import *
 from services.schedule_service import *
 # from services.friend_service import *
 from services.target_service import *
-#from services.postgres_service import *
 from services.log_service import *
 import os, uuid, pathlib
 import random
@@ -222,7 +221,7 @@ def manageProject():
     else:
         return "login"
 
-# N? 1019 for users to rank their joined projects
+# N? for users to rank their joined projects
 @app.route('/accounts/rankedProjects', methods=['GET'])
 def getRankedProjects():
     EID = int(request.json['EID'])
@@ -233,7 +232,7 @@ def getRankedProjects():
             
     return {'projects': projects}
 
-# Y 0331 for users to rank their joined projects
+# Y for users to rank their joined projects
 @app.route('/accounts/rankedProjects', methods=['POST'])
 def postRankedProjects():
     EID = int(request.json['EID'])
@@ -424,7 +423,7 @@ def equipments_get():
     else:
         return "login"
 
-# Y 1214 new equipment attributes
+# Y new equipment attributes
 @app.route('/accounts/equipments', methods=['POST'])
 def equipments_post():
     # equipment specs
@@ -525,7 +524,7 @@ def target_post():
         return "login"
 '''
 
-# Y 0703 change the function to query_from_simbad
+# Y change the function to query_from_simbad
 @app.route('/projects/search', methods=['POST'])
 def target_search_post():
     if 'search' in request.json:

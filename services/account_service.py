@@ -3,12 +3,9 @@ from typing import Optional
 from passlib.handlers.sha2_crypt import sha512_crypt as crypto
 from services.classes import User, Target, Equipments, Project, Schedule
 from datetime import datetime, timedelta
-# from services.schedule_service import create_schedule
 
 import astro.declination_limit_of_location as declination
 import astro.astroplan_calculations as schedule
-import astro.nighttime_calculations as night
-import ephem
 import random
 import numpy as np
 
@@ -117,9 +114,6 @@ def create_user_equipments(usr: str, eid: int, site: str, longitude: float, lati
     
     # calculate the declination limit of the equipment and update the table
     update_declination(uhaveid)
-
-    # create a empty schedule for the equipment
-    # _ = create_schedule(eid, uhaveid)
 
     return user_equipments
 
