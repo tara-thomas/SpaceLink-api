@@ -540,8 +540,12 @@ def upload_target():
 
 @app.route('/project/uploadLog', methods=['POST'])
 def upload_log():
-    usr = session["usr"]
-    session["usr"] = usr
+    if request.headers['user']:
+        usr = request.headers['user']
+        session["usr"] = usr
+    else:
+        return "Authentication Failed."
+    print (request.json)
     PID = request.json['PID'].strip()
     if request.method == 'POST':
         # check if the post request has the file part
