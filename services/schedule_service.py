@@ -269,6 +269,12 @@ def save_schedule(UID: int, EID: int, schedule: list):
     print(data)
     schedule_db.insert_one(data)
 
+def delete_schedule(UID: int, EID: int): 
+    query={}
+    query['UID'] = UID
+    query['EID'] = EID
+    schedule_db.delete_one(query)
+
 # Y
 def query_schedule(UID: int, EID: int, date: str):
     print(date)

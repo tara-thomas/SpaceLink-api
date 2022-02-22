@@ -2,8 +2,8 @@ from data.db_session import db_auth
 from typing import Optional
 from passlib.handlers.sha2_crypt import sha512_crypt as crypto
 from services.classes import User, Equipments
+from services.schedule_service import delete_schedule
 from datetime import datetime, timedelta
-
 import astro.declination_limit_of_location as declination
 import random
 import numpy as np
@@ -166,7 +166,9 @@ def update_declination(uhaveid):
 # Y delete a user's equipment
 def delete_user_equipment(usr: str,uhaveid: int):
     # delete the schedule first
+    uid = get_uid(usr)
     eid = get_eid(uhaveid)
+    delete_schedule(uid,eid)
     # get the PIDs of the projects this equipment joined
     query_userPJ = "MATCH (p:project)-[r:PhaveE]->(e:equipments {EID:$EID}) return p.PID as PID"
     userP = graph.run(query_userPJ, EID=eid).data()
