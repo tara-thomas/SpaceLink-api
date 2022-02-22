@@ -1,6 +1,5 @@
 from flask import Flask, render_template, redirect, session, url_for, flash, request, jsonify
 from flask_cors import CORS
-from data.db_session import db_auth
 from services.account_service import *
 from services.project_service import *
 from services.schedule_service import *
@@ -8,6 +7,7 @@ from services.schedule_service import *
 from services.target_service import *
 from services.log_service import *
 from services.utils import *
+from werkzeug.utils import secure_filename
 import os, uuid, pathlib
 import random
 import numpy as np
@@ -58,8 +58,7 @@ def register_post():
     if not user:
         return "A user with that email already exists.", 400
         # return {'username': username, 'name': name, 'email': email, 'affiliation': affiliation, 'title': title, 'country': country, 'password': password, 'confirm': confirm}
-
-    # return redirect(url_for("dashboard_get"))
+        
     return "It worked!", 200
 
 '''
@@ -149,7 +148,6 @@ def joinProject():
         return {"Success": "Successfully joined the project."}
     else:
         return "login"
-        #return redirect(url_for("login_get"))
 
 # N!
 @app.route('/accounts/joinedProjects', methods=['GET'])
@@ -576,8 +574,8 @@ def upload_log():
 def logout():
     session.pop("usr", None)
     flash("You have successfully been logged out.", "info")
+    
     return "login"
-    # return redirect(url_for("login_get"))
 
 
 if __name__ == '__main__':

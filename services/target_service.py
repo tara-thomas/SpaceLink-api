@@ -50,8 +50,7 @@ def query_simbad_byName(targetName: str):
         dec_split = dec.split(" ")
 
         ra_degree, dec_degree = hms2degree(ra_split, dec_split)
-            
-        # webbrowser.open("https://simbad.u-strasbg.fr/simbad/sim-basic?Ident=" + targetName + "&submit=SIMBAD+search")
+        
         simbad_link = "https://simbad.u-strasbg.fr/simbad/sim-basic?Ident=" + targetName + "&submit=SIMBAD+search"
 
         return {'name': targetName, 'ra': ra_degree, 'dec': dec_degree, 'link': simbad_link}
