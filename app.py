@@ -1,19 +1,16 @@
 from flask import Flask, render_template, redirect, session, url_for, flash, request, jsonify
 from flask_cors import CORS
 from data.db_session import db_auth
-#from services.accounts_service import create_user, login_user, get_profile, update_profile
-from services.accounts_service import *
+from services.account_service import *
 from services.project_service import *
 from services.schedule_service import *
-from services.friend_service import *
+# from services.friend_service import *
 from services.target_service import *
-#from services.postgres_service import *
 from services.log_service import *
 import os, uuid, pathlib
 import random
 import numpy as np
 
-ALLOWED_EXTENSIONS = {'csv', 'tsv'}
 UPLOAD_FOLDER = str(pathlib.Path().resolve())
 app = Flask(__name__) #create application
 app.secret_key = os.urandom(24) 
@@ -36,6 +33,7 @@ def ind():
 def test():
     return "It's a test"
 
+# Y
 @app.route('/accounts/register', methods=['POST'])
 def register_post():
     # Get the form data from register.html
@@ -70,6 +68,7 @@ def register_post():
     return "It worked!", 200
 
 '''
+# N
 @app.route('/accounts/login', methods=['GET'])
 def login_get():
     # Check if the user is already logged in.  if yes, redirect to profile page.
@@ -79,7 +78,7 @@ def login_get():
         return render_template("accounts/login.html")
 '''
 
-
+# Y
 @app.route('/accounts/login', methods=['POST'])
 def login_post():
     # Get the form data from login.html
@@ -99,6 +98,7 @@ def login_post():
     return usr
 
 '''
+# N
 @app.route('/accounts/map.html', methods=['GET'])
 def map_get():
     if "usr" in session:
@@ -107,9 +107,8 @@ def map_get():
         return render_template("accounts/map.html")
     else:
         return redirect(url_for("login_get"))
-'''
 
-'''
+# N
 @app.route('/accounts/map.html', methods=['POST'])
 def map_post():
     if "usr" in session:
@@ -118,8 +117,8 @@ def map_post():
         return render_template("accounts/map.html")
     else:
         return redirect(url_for("login_get"))
-'''
 
+# N
 @app.route('/accounts/friends', methods=['GET'])
 def viewFriends():
     if "usr" in session:
@@ -128,11 +127,13 @@ def viewFriends():
         friends = view_friend(usr)
         user_profile = get_profile(usr)
         return {'friends':friends, 'user_profile':user_profile}
-        #return render_template("accounts/friends.html", friends=friends, user_profile=user_profile )
+        #return render_template("accounts/friends.html", friends=friends, user_profile=user_profile)
     else:
         return 'login'
         #return redirect(url_for("login_get"))
+'''
 
+# Y
 @app.route('/accounts/index', methods=['GET'])
 def dashboard_get():
     if request.headers['user']:
@@ -144,6 +145,26 @@ def dashboard_get():
     else:
         return "login"
 
+# Y
+@app.route('/searchProject', methods=['POST'])
+def searchProject():
+    if request.headers['user']:
+        usr = request.headers['user']
+        session["usr"] = usr
+        # if search button clicked
+        if request.json['method'] == 'search':
+            text = request.json['list'].strip()
+            searched_projects = search_project(text)
+            return {'searched_projects': searched_projects}
+        if request.json['method'] == 'select':
+            PID = request.json['PID']
+            project = get_project_detail(PID)
+            join_status = get_join_status(usr, PID)
+            return {'project': project, 'join_status': join_status}
+    else:
+        return "login"
+
+# Y
 @app.route('/getQualifiedEquipment', methods=['POST'])
 def getQualifiedEquipment():
     if request.headers['user']:
@@ -155,7 +176,7 @@ def getQualifiedEquipment():
     else:
         return "login"
 
-# created for ajax to join project for project on dashboard
+# Y created for ajax to join project for project on dashboard
 @app.route('/joinProject', methods=['POST'])
 def joinProject():
     if request.headers['user']:
@@ -171,6 +192,7 @@ def joinProject():
         return "login"
         #return redirect(url_for("login_get"))
 
+# N!
 @app.route('/accounts/joinedProjects', methods=['GET'])
 def getJoinedProjects():
     if request.headers['user']:
@@ -178,6 +200,7 @@ def getJoinedProjects():
         session["usr"] = usr
         user_profile = get_profile(usr)
         projects = get_project_join(usr)
+        print(projects)
         if(projects == None):
             return "Not joined project yet!"
         return {'user_profile': user_profile,'projects': projects}
@@ -186,6 +209,7 @@ def getJoinedProjects():
     #     return "login"
         #return redirect(url_for("login_get"))
 
+# Y
 @app.route('/accounts/manageprojects', methods=['GET'])
 def manageProject():
     if request.headers['user']:
@@ -197,47 +221,44 @@ def manageProject():
     else:
         return "login"
 
-# 1019 for users to rank their joined projects
+# N? for users to rank their joined projects
 @app.route('/accounts/rankedProjects', methods=['GET'])
 def getRankedProjects():
     EID = int(request.json['EID'])
     usr = request.headers['user']
               
     pid_list = get_equipment_project_priority(usr, EID)
-    projects = get_project_info(pid_list); 
+    projects = get_project_info(pid_list)
             
-    return {'projects':projects}
+    return {'projects': projects}
 
-# 0331 for users to rank their joined projects
+# Y for users to rank their joined projects
 @app.route('/accounts/rankedProjects', methods=['POST'])
 def postRankedProjects():
-
     EID = int(request.json['EID'])
     usr = request.headers['user']
-    user_profile = get_profile(usr)
         
     # only when user click the save button would update the database
     if request.json['method'] == 'save':
         pid_list = request.json['list']
-        update_equipment_project_priority(usr,EID,pid_list)
+        update_equipment_project_priority(usr, EID, pid_list)
         pid_list = get_equipment_project_priority(usr, EID)    
-        projects = get_project_info(pid_list);             
-        return {'projects':projects}
+        projects = get_project_info(pid_list)
+        return {'projects': projects}
 
     if request.json['method'] == 'reset':
         projects = get_project_join(usr)
         projects = get_project_default_priority(projects)
-        return {'projects':projects}
+        return {'projects': projects}
 
     if request.json['method'] == 'get':                
         pid_list = get_equipment_project_priority(usr, EID)
         projects = get_project_info(pid_list); 
-        return {'projects':projects}
+        return {'projects': projects}
 
     return "login" 
-        #return redirect(url_for("login_get"))
 
-# created for ajax to get target for projects on dashboard
+# Y created for ajax to get target for projects on dashboard
 @app.route('/getTargetInfo', methods=['POST'])
 def getTargetInfo():
     if request.headers['user']:
@@ -249,8 +270,8 @@ def getTargetInfo():
         return jsonify(project_targets=project_target)
     else:
         return "login"
-        # return redirect(url_for("login_get"))
 
+# Y
 @app.route('/getTargetForProjectInfo', methods=['POST'])
 def getTargetForProjectInfo():
     if request.headers['user']:
@@ -262,20 +283,20 @@ def getTargetForProjectInfo():
     else:
         return "login"
 
-
+# Y
 @app.route('/getJoinedEquipmentInfo', methods=['POST'])
 def getJoinedEquipmentInfo():
-    hid = request.json['PID'].strip()
-    project_equipments = get_project_equipment(int(hid))
+    pid = request.json['PID']
+    project_equipments = get_project_equipment(pid)
     return jsonify(project_equipments = project_equipments)
 
+# Y
 @app.route('/equipment/schedule', methods=['POST'])
 def getSchedule():
     if request.headers['user']:
         usr = request.headers['user']
         session["usr"] = usr
         uhaveid =  request.json['id']
-        print("UHAVEID: ", uhaveid, "USER: ", usr)
         UID = get_uid(usr)
         EID = get_eid(uhaveid)
         # return jsonify(query_schedule(UID, EID, str(date.today())))
@@ -283,6 +304,8 @@ def getSchedule():
     else:
         return "login"
 
+'''
+# N
 @app.route('/addfriend', methods=['POST'])
 def addFriend():
     if "usr" in session:
@@ -293,8 +316,10 @@ def addFriend():
         return jsonify(success = "success")
     else:
         return "login"
-        #return redirect(url_for("login_get"))git
+        #return redirect(url_for("login_get"))
+'''
 
+# Y
 @app.route('/getPMInfo', methods=['POST'])
 def getPMInfo():
     hid = request.json['PID']
@@ -303,37 +328,30 @@ def getPMInfo():
 
 @app.route('/accounts/profile', methods=['GET'])
 def profile_get():
-    # Make sure the user has an active session.  If not, redirect to the login page.
     if "usr" in session:
         usr = session["usr"]
         session["usr"] = usr
         user_profile = get_profile(usr)
         return {'user_profile':user_profile}
-        #return render_template("accounts/profile.html", user_profile=user_profile)
     else:
         return "login"
-        #return redirect(url_for("login_get"))
-
 
 @app.route('/accounts/profile', methods=['POST'])
 def profile_post():
-    # Get the data from index.html
     username = request.json['username'].strip()
     name = request.json['name'].strip()
     affiliation = request.json['affiliation'].strip()
     title = request.json['title'].strip()
     country = request.json['country'].strip()
-    # Make sure the user has an active session.  If not, redirect to the login page.
+
     if "usr" in session:
         usr = session["usr"]
         session["usr"] = usr
         user_profile = update_profile(usr, username, name, affiliation, title, country)
         user_profile = get_profile(usr)
         return {'user_profiel':user_profile}
-        #return render_template("accounts/profile.html", user_profile=user_profile)
     else:
         return "login"
-        #return redirect(url_for("login_get"))
 
 @app.route('/accounts/interests', methods=['GET'])
 def viewInterest():
@@ -372,6 +390,8 @@ def delInterest():
         return "login"
         #return redirect(url_for("login_get"))
 
+'''
+# N?
 @app.route('/accounts/createProject', methods=['GET'])
 def createProj_get():
     # Make sure the user has an active session.  If not, redirect to the login page.
@@ -385,8 +405,9 @@ def createProj_get():
     else:
         return "login"
         #return redirect(url_for("login_get"))
+'''
 
-
+# Y
 @app.route('/accounts/equipments', methods=['GET'])
 def equipments_get():
     if request.headers['user']:
@@ -396,16 +417,13 @@ def equipments_get():
         count = count_user_equipment(usr)
         if count == 0:
             flash("You don't have any equipment yet! Please add an equipment first", "error")
-            return {'user_equipments':None}
-            #return render_template("accounts/equipments.html", user_equipments = None)
+            return {'user_equipments': None}
         user_equipments = get_user_equipments(usr)
-        return {'user_profile':user_profile,'user_equipments':user_equipments}
-        #return render_template("accounts/equipments.html", user_profile=user_profile, user_equipments = user_equipments)
+        return {'user_profile': user_profile,'user_equipments': user_equipments}
     else:
         return "login"
-        #return redirect(url_for("login_get"))
 
-# 1214 new equipment attributes
+# Y new equipment attributes
 @app.route('/accounts/equipments', methods=['POST'])
 def equipments_post():
     # equipment specs
@@ -465,34 +483,25 @@ def equipments_post():
         if request.json['method'] == 'delete':            
             hid = request.json['uhaveid']
             delete_user_equipment(usr, int(hid))
-            # delete user's equipment in postgresSQL
-            # postgres_delete_user_equipments(int(hid))
 
         if request.json['method'] == 'update':            
             hid = request.json['uhaveid'] 
             print(hid)
             user_equipments = update_user_equipments(telName, focalLength, diameter, camName, pixelSize, sensorW, sensorH, camera_type1, camera_type2, filterArray,
                                                     mountName, mount_type, deg, barlowName, magnification, usr, hid, site, longitude, latitude, altitude, tz, sq)
-        # equipments = create_equipments(telName, focalLength, diameter,
-        #                             camName, pixelSize, sensorW, sensorH, camera_type1, camera_type2,
-        #                             lFilter, rFilter, gFilter, bFilter, haFilter, oiiiFilter, siiFilter, duoFilter, multispectraFilter,
-        #                             JohnsonU, JohnsonB, JohnsonV, JohnsonR, JohnsonI, SDSSu, SDSSg, SDSSr, SDSSi, SDSSz,
-        #                             mountName, mount_type, deg, barlowName, magnification,
-        #                             focalRatio, fovDeg, resolution)
+
         if request.json['method'] == 'create':  
             equipments = create_equipments(telName, focalLength, diameter, camName, pixelSize, sensorW, sensorH, camera_type1, camera_type2, filterArray,
                                         mountName, mount_type, deg, barlowName, magnification, focalRatio, fovDeg, resolution)
             user_equipments = create_user_equipments(usr, equipments.EID, site, longitude, latitude, altitude, tz, sq)
-            # create spatial user equipment
-            # postgres_create_user_equipments(int(user_equipments.id),get_uid(usr), equipments.EID,Longitude,Latitude,Altitude)
         
         user_equipments = get_user_equipments(usr)
         return {'user_equipments':user_equipments}
-        #return render_template("accounts/equipments.html", user_equipments = user_equipments)
     else:
         return "login"
-        #return redirect(url_for("login_get"))
 
+'''
+# N
 @app.route('/projects/target', methods=['GET'])
 def target_get():
     if "usr" in session:
@@ -500,31 +509,22 @@ def target_get():
         session["usr"] = usr
         target = get_target()
         return {'target':target}
-        #return render_template("projects/target.html", target = target)
     else:
         return "login"
-        #return redirect(url_for("login_get"))
 
+# N
 @app.route('/projects/target', methods=['POST'])
 def target_post():
-
     if "usr" in session:
         usr = session["usr"]
         session["usr"] = usr
         target = get_target()
         return {'target':target}
-        #return render_template("projects/target.html", target = target)
     else:
         return "login"
-        #return redirect(url_for("login_get"))
-
-'''
-@app.route('/projects/search', methods=['GET'])
-def target_search_get():
-    return render_template("projects/search_target.html")
 '''
 
-# 0703 change the function to query_from_simbad
+# Y change the function to query_from_simbad
 @app.route('/projects/search', methods=['POST'])
 def target_search_post():
     if 'search' in request.json:
@@ -535,34 +535,31 @@ def target_search_post():
         rad = request.json['rad'].strip()
         unit = request.json['unit'].strip()
         target = query_simbad_byCoord(coord, float(rad), unit)
-
-    # text = '(?i).*'+text+'.*'
-    # if request.form.get('button') == 'Search':
-    # target = search_target(text)
-
-    #return render_template("projects/search_target.html", target = target)
+    
     return {'target': target}
 
+'''
+# N
 @app.route('/projects/targetDetails', methods=['POST'])
 def target_getDetails():
         name = request.json['targetName'].strip()
         target = get_targetDetails(name)
         return jsonify(targetDetails = target)
 
-
+# N
 @app.route('/projects/project', methods=['GET'])
 def project_get():
-
     if request.headers['user']:
         usr = request.headers['user']
         session["usr"] = usr
         projects = get_project(usr)
-        return {'projects':projects}
+        return {'projects': projects}
         #return render_template("projects/project.html", projects = projects)
     else:
         return "login"
         #return redirect(url_for("login_get"))
 
+# N
 @app.route('/projects/project', methods=['POST'])
 def project_post():
     hid = request.form.get('PID').strip()
@@ -597,7 +594,6 @@ def project_post():
         return "login"
         # return redirect(url_for("login_get"))
 
-
 @app.route('/projects/project_apply_history', methods=['GET'])
 def project_apply_history_get():
     if "usr" in session:
@@ -619,7 +615,9 @@ def project_create_get():
     else:
         return "login"
         # return redirect(url_for("login_get"))
+'''
 
+# Y
 @app.route('/accounts/createProject', methods=['POST'])
 def project_create_post():
     # project attributes
@@ -631,16 +629,12 @@ def project_create_post():
 
     # required camera type
     required_camera_type = request.json['camera_type1']
-    # mono = request.json['mono']
-    # required_camera_type = [colored, mono]
 
     # required filters
     required_filter = []
     for filter in FILTER:
         required_filter.append(request.json[filter])
-
-    # PID = request.form.get('PID').strip()
-    # PI = request.form.get('PI').strip()
+    
     if request.headers['user']:
         usr = request.headers['user']
         session["usr"] = usr
@@ -658,12 +652,12 @@ def project_create_post():
             PID = request.json['PID']
             delete_project(usr, int(PID), int(umanageid))
             return "deleted"
-        # projects = user_manage_projects_get(usr)
+
         return jsonify(projects=projects.PID)
     else:
         return "login"
-        # return redirect(url_for("login_get"))
 
+# Y
 @app.route('/projects/createTarget', methods=['POST'])
 def createTarget():
     targetName = request.json['name'].strip()
@@ -677,6 +671,7 @@ def createTarget():
     else:
         return "login", 400
 
+# Y
 @app.route('/projects/addTarget', methods=['POST'])
 def addTarget():
     PID = request.json['PID']
@@ -715,24 +710,6 @@ def deleteProjectTarget():
         return "deleted", 201
     else:
         return "login", 400
-
-# @app.route('/projects/project', methods=['POST'])
-# def project_post():
-#     hid = request.form.get('PID').strip()
-#     if "usr" in session:
-#         usr = session["usr"]
-#         session["usr"] = usr
-#         if request.form.get('button') == 'Detail':
-#             print(hid)
-#             project_target = get_project_target(int(hid))
-#             return render_template("projects/project_target.html", project_target = project_target)
-#     else:
-#         return redirect(url_for("login_get"))
-
-
-def allowed_file(filename: str):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @app.route('/project/uploadTarget', methods=['POST'])
 def upload_target():
@@ -774,8 +751,8 @@ def upload_target():
             else:
                 os.remove(filepath)
                 return 0
-
-        else :
+            
+        else:
             print("Not supported file")
 
 @app.route('/project/uploadLog', methods=['POST'])
@@ -808,7 +785,7 @@ def upload_log():
             
             #check the file format 
             check_format_result = check_log_format(filepath)
-            if( check_format_result != "Success"):
+            if( check_format_result != 1):
                 os.remove(filepath)
                 return 0
             #update the observe time
@@ -820,7 +797,7 @@ def upload_log():
                 return 0
 
         else :
-            print("Not supported file")
+            print("The file format is not supported\n")
 
 
 @app.route('/accounts/logout')
@@ -832,4 +809,4 @@ def logout():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0',port=5000)
+    app.run(host='0.0.0.0', port=5000)
