@@ -7,6 +7,7 @@ from services.schedule_service import *
 # from services.friend_service import *
 from services.target_service import *
 from services.log_service import *
+from services.utils import *
 import os, uuid, pathlib
 import random
 import numpy as np
@@ -17,12 +18,6 @@ app.secret_key = os.urandom(24)
 app.config['MAX_CONTENT_LENGTH'] = 32 * 1024 * 1024
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 CORS(app)
-
-graph = db_auth() #connect to neo4j
-
-FILTER = ['lFilter','rFilter','gFilter','bFilter','haFilter','oiiiFilter','siiFilter','duoFilter','multispectraFilter', \
-            'JohnsonU','JohnsonB','JohnsonV','JohnsonR','JohnsonI',\
-            'SDSSu','SDSSg','SDSSr','SDSSi','SDSSz']
 
 
 @app.route('/', methods=['GET'])
@@ -97,42 +92,6 @@ def login_post():
     session["usr"] = usr
     return usr
 
-'''
-# N
-@app.route('/accounts/map.html', methods=['GET'])
-def map_get():
-    if "usr" in session:
-        usr = session["usr"]
-        session["usr"] = usr
-        return render_template("accounts/map.html")
-    else:
-        return redirect(url_for("login_get"))
-
-# N
-@app.route('/accounts/map.html', methods=['POST'])
-def map_post():
-    if "usr" in session:
-        usr = session["usr"]
-        session["usr"] = usr
-        return render_template("accounts/map.html")
-    else:
-        return redirect(url_for("login_get"))
-
-# N
-@app.route('/accounts/friends', methods=['GET'])
-def viewFriends():
-    if "usr" in session:
-        usr = session["usr"]
-        session["usr"] = usr
-        friends = view_friend(usr)
-        user_profile = get_profile(usr)
-        return {'friends':friends, 'user_profile':user_profile}
-        #return render_template("accounts/friends.html", friends=friends, user_profile=user_profile)
-    else:
-        return 'login'
-        #return redirect(url_for("login_get"))
-'''
-
 # Y
 @app.route('/accounts/index', methods=['GET'])
 def dashboard_get():
@@ -204,10 +163,8 @@ def getJoinedProjects():
         if(projects == None):
             return "Not joined project yet!"
         return {'user_profile': user_profile,'projects': projects}
-        #return render_template("accounts/joinedProjects.html", user_profile=user_profile, projects = projects)
-    # else:
-    #     return "login"
-        #return redirect(url_for("login_get"))
+    else:
+        return "login"
 
 # Y
 @app.route('/accounts/manageprojects', methods=['GET'])
@@ -304,21 +261,6 @@ def getSchedule():
     else:
         return "login"
 
-'''
-# N
-@app.route('/addfriend', methods=['POST'])
-def addFriend():
-    if "usr" in session:
-        usr = session["usr"]
-        session["usr"] = usr
-        uid = request.json['UID'].strip()
-        add_friend(usr, int(uid))
-        return jsonify(success = "success")
-    else:
-        return "login"
-        #return redirect(url_for("login_get"))
-'''
-
 # Y
 @app.route('/getPMInfo', methods=['POST'])
 def getPMInfo():
@@ -332,7 +274,7 @@ def profile_get():
         usr = session["usr"]
         session["usr"] = usr
         user_profile = get_profile(usr)
-        return {'user_profile':user_profile}
+        return {'user_profile': user_profile}
     else:
         return "login"
 
@@ -352,60 +294,6 @@ def profile_post():
         return {'user_profiel':user_profile}
     else:
         return "login"
-
-@app.route('/accounts/interests', methods=['GET'])
-def viewInterest():
-    if "usr" in session:
-        usr = session["usr"]
-        session["usr"] = usr
-        user_profile = get_profile(usr)
-        interests = get_user_interest(usr)
-        return {'user_profiel':user_profile, 'interests':interests}
-        #return render_template("accounts/interests.html", user_profile=user_profile, interests=interests)
-    else:
-        return "login"
-        #return redirect(url_for("login_get"))
-
-@app.route('/accounts/addInterest', methods=['POST'])
-def addInterest():
-    if "usr" in session:
-        usr = session["usr"]
-        session["usr"] = usr
-        TID = request.json['TID']
-        create_user_target(usr, int(TID))
-        return jsonify(success = "Success")
-    else:
-        return "login"
-        #return redirect(url_for("login_get"))
-
-@app.route('/accounts/deleteInterest', methods=['POST'])
-def delInterest():
-    if "usr" in session:
-        usr = session["usr"]
-        session["usr"] = usr
-        TID = request.json['TID']
-        delete_user_insterest(usr, int(TID))
-        return jsonify(success = "Success")
-    else:
-        return "login"
-        #return redirect(url_for("login_get"))
-
-'''
-# N?
-@app.route('/accounts/createProject', methods=['GET'])
-def createProj_get():
-    # Make sure the user has an active session.  If not, redirect to the login page.
-    if "usr" in session:
-        usr = session["usr"]
-        session["usr"] = usr
-        user_profile = get_profile(usr)
-        projects = get_project(usr)
-        return {'user_profile':user_profile,'projects':projects}
-        #return render_template("accounts/createProject.html", user_profile=user_profile, projects = projects)
-    else:
-        return "login"
-        #return redirect(url_for("login_get"))
-'''
 
 # Y
 @app.route('/accounts/equipments', methods=['GET'])
@@ -500,30 +388,6 @@ def equipments_post():
     else:
         return "login"
 
-'''
-# N
-@app.route('/projects/target', methods=['GET'])
-def target_get():
-    if "usr" in session:
-        usr = session["usr"]
-        session["usr"] = usr
-        target = get_target()
-        return {'target':target}
-    else:
-        return "login"
-
-# N
-@app.route('/projects/target', methods=['POST'])
-def target_post():
-    if "usr" in session:
-        usr = session["usr"]
-        session["usr"] = usr
-        target = get_target()
-        return {'target':target}
-    else:
-        return "login"
-'''
-
 # Y change the function to query_from_simbad
 @app.route('/projects/search', methods=['POST'])
 def target_search_post():
@@ -537,85 +401,6 @@ def target_search_post():
         target = query_simbad_byCoord(coord, float(rad), unit)
     
     return {'target': target}
-
-'''
-# N
-@app.route('/projects/targetDetails', methods=['POST'])
-def target_getDetails():
-        name = request.json['targetName'].strip()
-        target = get_targetDetails(name)
-        return jsonify(targetDetails = target)
-
-# N
-@app.route('/projects/project', methods=['GET'])
-def project_get():
-    if request.headers['user']:
-        usr = request.headers['user']
-        session["usr"] = usr
-        projects = get_project(usr)
-        return {'projects': projects}
-        #return render_template("projects/project.html", projects = projects)
-    else:
-        return "login"
-        #return redirect(url_for("login_get"))
-
-# N
-@app.route('/projects/project', methods=['POST'])
-def project_post():
-    hid = request.form.get('PID').strip()
-    if "usr" in session:
-        usr = session["usr"]
-        session["usr"] = usr
-        if request.form.get('button') == 'Detail':
-            print(hid)
-            project_target = get_project_target(int(hid))
-            return {'project_target': project_target}
-        elif request.form.get('button') == 'Create':
-            return "project create"
-            # return redirect(url_for("project_create_get"))
-        elif request.form.get('button') == 'Apply_history':
-            print('history')
-            return "project apply history"
-            # return redirect(url_for("project_apply_history_get"))
-        elif request.form.get('button') == 'Join':
-            PID = request.json['PID'].strip()
-            flag = apply_project_status(usr,int(PID))
-            if flag == 1:
-                apply_project(usr,int(PID))
-            #elif flag == 2:
-                # handle already apply
-            #elif flag == 3:
-                #handle already join project
-            #else:
-                # handle error
-        projects = get_project(usr)
-        return {'projects': projects}
-    else:
-        return "login"
-        # return redirect(url_for("login_get"))
-
-@app.route('/projects/project_apply_history', methods=['GET'])
-def project_apply_history_get():
-    if "usr" in session:
-        usr = session["usr"]
-        session["usr"] = usr
-        history = get_apply_history(usr)
-        return {'history': history}
-    else:
-        return "login"
-        # return redirect(url_for("login_get"))
-
-@app.route('/projects/project_create', methods=['GET'])
-def project_create_get():
-    if "usr" in session:
-        usr = session["usr"]
-        session["usr"] = usr
-        projects = user_manage_projects_get(usr)
-        return {'projects': projects}
-    else:
-        return "login"
-        # return redirect(url_for("login_get"))
-'''
 
 # Y
 @app.route('/accounts/createProject', methods=['POST'])

@@ -1,23 +1,12 @@
 from os import scandir
-
-from data.db_session import db_auth
 from datetime import datetime, timedelta, date
 from services.project_service import get_project_target
-from services.account_service import get_uid
+from services.utils import *
 from flask import jsonify
 
 import astro.astroplan_calculations as obtime
 import random
-import pymongo
 
-graph = db_auth()
-client = pymongo.MongoClient("mongodb://localhost:27017/")
-db = client["SpaceLink"]
-schedule_db = db['schedule']
-
-FILTER = ['lFilter','rFilter','gFilter','bFilter','haFilter','oiiiFilter','siiFilter','duoFilter','multispectraFilter', \
-            'JohnsonU','JohnsonB','JohnsonV','JohnsonR','JohnsonI',\
-            'SDSSu','SDSSg','SDSSr','SDSSi','SDSSz']
 
 # Y generate default schedule by sorting target
 def generate_default_schedule(usr: str, uhaveid: int):
@@ -47,8 +36,8 @@ def generate_default_schedule(usr: str, uhaveid: int):
         if t not in schedule_target_no_duplicates:
             schedule_target_no_duplicates.append(t)
             schedule_pid_no_duplicates.append(pid)
-    print(schedule_target)
-    print(schedule_target_no_duplicates)
+    # print(schedule_target)
+    # print(schedule_target_no_duplicates)
 
     default_schedule, target_datetime = get_observable_time(uhaveid, schedule_pid_no_duplicates, schedule_target_no_duplicates)
 
@@ -269,8 +258,9 @@ def save_schedule(UID: int, EID: int, schedule: list):
     print(data)
     schedule_db.insert_one(data)
 
+# Y
 def delete_schedule(UID: int, EID: int): 
-    query={}
+    query = {}
     query['UID'] = UID
     query['EID'] = EID
     schedule_db.delete_one(query)
@@ -281,5 +271,3 @@ def query_schedule(UID: int, EID: int, date: str):
     result = schedule_db.find_one({'UID': UID, 'EID': EID, 'date': date})
     # print(jsonify(result["schedule"]))
     return result['schedule']['default_schedule'], result['schedule']['target_schedule']
-
-

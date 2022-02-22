@@ -1,4 +1,22 @@
-# 1027 convert hms / dms to degree
+from data.db_session import db_auth
+import pymongo
+import re
+
+# Neo4j
+graph = db_auth()
+
+# mongoDB
+client = pymongo.MongoClient("mongodb://localhost:27017/")
+db = client["SpaceLink"]
+schedule_db = db['schedule']
+
+ALLOWED_EXTENSIONS = {'csv', 'tsv'}
+FILTER = ['lFilter','rFilter','gFilter','bFilter','haFilter','oiiiFilter','siiFilter','duoFilter','multispectraFilter', \
+            'JohnsonU','JohnsonB','JohnsonV','JohnsonR','JohnsonI',\
+            'SDSSu','SDSSg','SDSSr','SDSSi','SDSSz']
+PATTERN = re.compile('.*[0-9][0-9]:[0-9][0-9]:[0-9][0-9].[0-9]')
+
+# convert hms / dms to degree
 def hms2degree(ra_hms: list, dec_dms: list):
     len_ra = len(ra_hms)
     len_dec = len(dec_dms)
@@ -24,7 +42,7 @@ def hms2degree(ra_hms: list, dec_dms: list):
 
     return ra_degree, dec_degree
 
-# 0107 convet degree to hms / dms
+# convet degree to hms / dms
 def degree2hms(ra='', dec='', _round=False):
     RA, DEC, rs, ds = '', '', '', ''
     if dec:
@@ -53,3 +71,19 @@ def degree2hms(ra='', dec='', _round=False):
         return (RA, DEC)
     else:
         return RA or DEC
+
+# Y get user's UID
+def get_uid(usr: str):
+    query_uid = "MATCH (x:user{email:$usr}) return x.UID as UID"
+    uid = graph.run(query_uid, usr=usr).data()
+    uid = int(uid[0]['UID'])
+
+    return uid
+
+# Y get the equipment id
+def get_eid(uhaveid):
+    query_eid = "MATCH (x:user)-[h:UhaveE{uhaveid:$uhaveid}]->(e:equipments) return e.EID as EID"
+    eid = graph.run(query_eid, uhaveid=uhaveid).data()
+    eid = int(eid[0]['EID'])
+
+    return eid

@@ -1,31 +1,11 @@
 from services.classes import Target
-from data.db_session import db_auth
 from astroquery.simbad import Simbad
 import astropy.coordinates as coord
 import astropy.units as u
-# from services.project_service import update_project_equipment_observe_list, create_project_target
 from services.project_service import create_project_target
 from services.utils import *
-import webbrowser, json
-from werkzeug.utils import secure_filename
 import csv 
-import re
 
-FILTER = ['lFilter','rFilter','gFilter','bFilter','haFilter','oiiiFilter','siiFilter','duoFilter','multispectraFilter', \
-            'JohnsonU','JohnsonB','JohnsonV','JohnsonR','JohnsonI',\
-            'SDSSu','SDSSg','SDSSr','SDSSi','SDSSz']
-PATTERN = re.compile('.*[0-9][0-9]:[0-9][0-9]:[0-9][0-9].[0-9]')
-
-graph = db_auth()
-
-
-# N return all the target in the DB, this version limit the number to 100 
-def get_target():
-    # this function will return all target
-    query = "MATCH(t:target) return t.name as name order by t.TID limit 100"
-    # "MATCH(t:target) where t.tid>100 return t.name as name order by t.TID limit 100"
-    target = graph.run(query)
-    return target
 
 # Y get a target's information
 def get_targetDetails(targetName: str):
@@ -33,21 +13,6 @@ def get_targetDetails(targetName: str):
     targetDetails = graph.run(query, name=targetName).data()
     
     return targetDetails
-
-# N get a target's node
-def get_targetNode(targetName: str):
-    query = "MATCH(t:target{name:$name}) return t"
-    targetNode = graph.run(query, name=targetName).data()
-    
-    return targetNode
-
-# N search a target by keyword
-def search_target(text: str):
-    query= "MATCH (t:target) where t.name =~ $text return t.name as name order by t.name "
-    target = graph.run(query, text = text).data()
-    print(target)
-
-    return target
 
 # Y create target if it doesn't exist
 def create_target(targetName: str, ra: float, dec: float):
@@ -123,13 +88,8 @@ def query_simbad_byCoord(targetCoord: str, rad: float, unit: str):
         tar_list.append({'name': tar[0], 'ra': ra, 'dec': dec})
 
     return tar_list
-    
-# def allowed_file(filename: str):
-#     return '.' in filename and \
-#            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def check_format(filename: str):
-    #print(filename)
     with open(filename, newline="") as csvfile:
         rows = csv.DictReader(csvfile)
 
@@ -211,22 +171,12 @@ def check_format(filename: str):
                     if int(row[filter]) < 0 :
                         return "rows "+ str(index+1) + " error : \"" + filter + " Time\" format error"   
                 else:
-                    return "rows "+ str(index+1) + " error : " + filter + " format error. "      
-
-
-            # if mode:
-            #     try:
-            #         time = float(row['Total_cycle__time'])
-            #         if time < 0:
-            #             raise Exception
-            #     except ValueError:
-            #         return "rows "+ str(index+1) + " error : \"Total cycle time\" format error"   
+                    return "rows "+ str(index+1) + " error : " + filter + " format error. "  
 
     csvfile.close()
     return "Success"
 
 def upload_2_DB(filename : str, PID : int, usr: str):
-    
     with open(filename, newline="") as csvfile:
         rows = csv.DictReader(csvfile)
         
@@ -285,21 +235,11 @@ def upload_2_DB(filename : str, PID : int, usr: str):
 
             # create project target relationship
             create_project_target(usr, PID, TID, filter2observe, time2observe, int(row['Mode']))
-            # query="MATCH (p:project {PID: $PID}) MATCH (t:target {TID:$TID}) create (p)-[pht:PHaveT {phavetid:$phavetid, JohnsonB:$JohnsonB, JohnsonV:$JohnsonV, JohnsonR:$JohnsonR, SDSSu:$SDSSu, SDSSg:$SDSSg, SDSSr:$SDSSr, SDSSi:$SDSSi, SDSSz:$SDSSz, Time_to_Observe:$time2observe, Mode:$mode }]->(t) return pht.phavetid"
-            # update_project_equipment_observe_list(usr,PID,TID,row['Johnson_B'], row['Johnson_R'], row['Johnson_V'],row['SDSS_u'],row['SDSS_g'],row['SDSS_r'],row['SDSS_i'],row['SDSS_z'])
-            # count = graph.run("MATCH ()-[pht:PHaveT]->() return pht.phavetid  order by pht.phavetid DESC limit 1 ").data()
-            # if len(count) == 0:
-            #     cnt = 0
-            # else:
-            #     cnt = count[0]['pht.phavetid']+1
-            #     result = graph.run(query, PID = PID, TID = TID, phavetid = cnt, JohnsonB = row['Johnson_B'], JohnsonR = row['Johnson_R'], JohnsonV = row['Johnson_B'] \
-            #         , SDSSg = row['SDSS_g'], SDSSi = row['SDSS_i'], SDSSr = row['SDSS_r'], SDSSu = row['SDSS_u'], SDSSz = row['SDSS_z'], Time_to_Observe= time2observe, mode=int(row['Mode'])).data()
 
     return 1
 
 
 def time_deduction(PID: int, TID: int, observe_time: list):
-    
     remain = get_remain_time_to_observe(PID,TID)
     for i in range(len(observe_time)):
         remain[i] = remain[i] - observe_time[i]

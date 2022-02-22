@@ -64,12 +64,3 @@ class Project(GraphObject):
     required_camera_type = Property()
     required_filter = Property()
     own = RelatedFrom(User, "MANAGE")
-
-'''
-class Schedule(GraphObject):
-    __primarylabel__ = "schedule"
-    __primarykey__ = "SID"
-    SID = Property()
-    last_update = Property()
-    observe_section = Property()
-'''
