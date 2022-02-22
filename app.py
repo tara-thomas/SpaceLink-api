@@ -673,9 +673,9 @@ def createTarget():
         usr = request.headers['user']
         session["usr"] = usr
         msg, tid = create_target(targetName, ra, dec)
-        return jsonify(tid=tid)
+        return jsonify(tid=tid), 201
     else:
-        return "login"
+        return "login", 400
 
 @app.route('/projects/addTarget', methods=['POST'])
 def addTarget():
@@ -693,15 +693,28 @@ def addTarget():
         session["usr"] = usr
         if request.json['method'] == 'create':
             target  = create_project_target(usr, int(PID), int(TID), filter2observe, time2observe, int(mode))
-            return jsonify(target = target)
+            return jsonify(target = target), 201
         if request.json['method'] == 'update':
             target  = update_project_target(int(PID), int(TID), filter2observe, time2observe, int(mode))
-            return jsonify(target = target)
+            return jsonify(target = target), 201
         if request.json['method'] == 'delete':
             delete_project_target(int(PID), int(TID))
-            return "deleted"
+            return "deleted", 201
     else:
-        return "login"
+        return "Error", 500
+
+@app.route('/projects/deleteProjectTarget', methods=['POST'])
+def deleteProjectTarget():
+    PID = request.json['PID']
+    TID = request.json['TID']
+
+    if request.headers['user']:
+        usr = request.headers['user']
+        session["usr"] = usr        
+        delete_project_target(int(PID), int(TID))
+        return "deleted", 201
+    else:
+        return "login", 400
 
 # @app.route('/projects/project', methods=['POST'])
 # def project_post():
