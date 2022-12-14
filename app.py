@@ -475,9 +475,6 @@ def addTarget():
         if request.json['method'] == 'update':
             target  = update_project_target(int(PID), int(TID), filter2observe, time2observe, int(mode))
             return jsonify(target = target), 201
-        if request.json['method'] == 'delete':
-            delete_project_target(int(PID), int(TID))
-            return "deleted", 201
     else:
         return "Error", 500
 
@@ -498,7 +495,7 @@ def deleteProjectTarget():
 def upload_target():
     usr = session["usr"]
     session["usr"] = usr
-    PID = request.json['PID'].strip()
+    PID = request.json['PID']
     if request.method == 'POST':
         # check if the post request has the file part
         if 'file' not in request.files:
@@ -543,8 +540,8 @@ def upload_log():
         session["usr"] = usr
     else:
         return "Authentication Failed."
-    print (request.json)
-    PID = request.json['PID'].strip()
+    print("json:", request.json)
+    PID = request.json['PID']
     if request.method == 'POST':
         # check if the post request has the file part
         if 'file' not in request.files:
